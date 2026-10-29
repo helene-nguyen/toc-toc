@@ -55,8 +55,9 @@ jobs:
       - name: Build
         run: pnpm build
 
-  #~ The Raspberry Pi image (arm64), published on GitHub's registry after
-  # every green push to main — the Pi only pulls it
+  #~ The Raspberry Pi image, published on GitHub's registry after every
+  # green push to main — the Pi only pulls it. Two variants: arm64 for a
+  # 64-bit Raspberry Pi OS, arm/v7 for a 32-bit one (Docker picks its own)
   image:
     needs: checks
     if: github.event_name == 'push'
@@ -81,7 +82,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/arm64
+          platforms: linux/arm64,linux/arm/v7
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/toc-toc:latest
           cache-from: type=gha

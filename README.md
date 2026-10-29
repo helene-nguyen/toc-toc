@@ -37,9 +37,9 @@ Tests : `pnpm test` (unitaires), `pnpm test:integration` (PostgreSQL requis), `p
 
 ## Déployer sur le Raspberry Pi
 
-Une seule image contient l'API et l'app web compilée ; elle applique les migrations au démarrage. La CI la construit pour arm64 et la publie sur `ghcr.io/helene-nguyen/toc-toc` à chaque push sur `main`.
+Une seule image contient l'API et l'app web compilée ; elle applique les migrations au démarrage. La CI la publie sur `ghcr.io/helene-nguyen/toc-toc` à chaque push sur `main`, en deux variantes : `arm64` pour un Raspberry Pi OS 64 bits, `arm/v7` pour un Raspberry Pi OS 32 bits. Docker choisit seul la bonne. L'image tourne sous Node 22, le dernier Node publié en 32 bits.
 
-Sur le Pi (64 bits, Docker installé) :
+Sur le Pi (Docker installé) :
 
 ```bash
 git clone git@github.com:helene-nguyen/toc-toc.git && cd toc-toc
@@ -58,7 +58,7 @@ Dans `.env` :
 
 Les sessions enregistrées avant l'arrivée des comptes reviennent au premier compte créé.
 
-Sans registre, construire l'image sur le Pi : `docker compose -f docker-compose.prod.yml build` (plus lent).
+Sans registre, construire l'image sur le Pi : `docker compose -f docker-compose.prod.yml build` (plus lent, et seulement sur un système 64 bits). Pour savoir si le système est en 64 bits, `getconf LONG_BIT` doit répondre `64` : `uname -m` ne suffit pas, il affiche `aarch64` dès que le noyau est en 64 bits, même avec un système 32 bits.
 
 Mettre à jour : `pull` puis `up -d` à nouveau.
 
