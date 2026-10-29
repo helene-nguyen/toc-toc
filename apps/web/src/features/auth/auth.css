@@ -20,7 +20,18 @@
 .auth__header {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
+  text-align: center;
+}
+.auth__logo {
+  width: 88px;
+  height: 88px;
+  margin-bottom: 8px;
+  /* white background in the image: an app-icon tile, in both themes */
+  border-radius: 22%;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--line);
 }
 .auth__brand {
   margin: 0;
@@ -36,6 +47,7 @@
 }
 .auth__title {
   margin: 0;
+  text-align: center;
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 20px;

@@ -6,6 +6,7 @@ export const AuthCard = ({ title, children }: { title: string; children: ReactNo
   <main className="auth">
     <section className="auth__card">
       <header className="auth__header">
+        <img className="auth__logo" src="/logo.png" alt="" width="88" height="88" />
         <p className="auth__brand">Toc-Toc</p>
         <p className="auth__tagline">Suivi des contractions et des mouvements du bébé</p>
       </header>

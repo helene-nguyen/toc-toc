@@ -57,7 +57,18 @@
   background: var(--surface);
   color: var(--contract);
 }
+.shell__logo {
+  width: 36px;
+  height: 36px;
+  /* the logo has a white background: shown as an app-icon tile, in both themes */
+  border-radius: 22%;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--line);
+}
 .shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 24px;

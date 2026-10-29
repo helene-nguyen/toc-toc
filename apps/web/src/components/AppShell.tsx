@@ -33,7 +33,10 @@ export const AppShell = () => {
   return (
     <div className="shell">
       <header className="shell__top">
-        <h1 className="shell__brand">Toc-Toc</h1>
+        <h1 className="shell__brand">
+          <img className="shell__logo" src="/logo.png" alt="" width="36" height="36" />
+          Toc-Toc
+        </h1>
         {user && (
           <div className="shell__account">
             <span className="shell__email" title={user.email}>
