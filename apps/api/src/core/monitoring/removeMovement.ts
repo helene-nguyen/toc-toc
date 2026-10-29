@@ -5,6 +5,13 @@ import type { MonitoringRepository } from './ports.js';
 export class RemoveMovement {
   constructor(private readonly monitorings: MonitoringRepository) {}
 
-  handle = async (monitoringId: string, movementId: string): Promise<Result<void, 'MOVEMENT_NOT_FOUND'>> =>
-    (await this.monitorings.removeMovement(monitoringId, movementId)) ? ok(undefined) : err('MOVEMENT_NOT_FOUND');
+  handle = async (
+    monitoringId: string,
+    userId: number,
+    movementId: string
+  ): Promise<Result<void, 'MONITORING_NOT_FOUND' | 'MOVEMENT_NOT_FOUND'>> => {
+    if (!(await this.monitorings.findById(monitoringId, userId))) return err('MONITORING_NOT_FOUND');
+
+    return (await this.monitorings.removeMovement(monitoringId, movementId)) ? ok(undefined) : err('MOVEMENT_NOT_FOUND');
+  };
 }

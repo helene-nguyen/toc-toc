@@ -1,6 +1,6 @@
 //~ Driven adapter: MonitoringRepository backed by PostgreSQL (monitoring,
-// contraction, movement). Saving a tap is an upsert on the id the phone
-// made, never moving a row to another monitoring.
+// contraction, movement). Reads are scoped by user_id; saving a tap is an
+// upsert on the id the phone made, never moving a row to another monitoring.
 import type pg from 'pg';
 import type {
   Contraction,
@@ -16,36 +16,39 @@ const MONITORING_COLUMNS = 'id, started_at AS "startedAt", stopped_at AS "stoppe
 export class PostgresMonitoringRepository implements MonitoringRepository {
   constructor(private readonly pool: pg.Pool) {}
 
-  findById = async (id: string): Promise<Monitoring | null> => {
+  findById = async (id: string, userId: number): Promise<Monitoring | null> => {
     const { rows } = await this.pool.query<Omit<Monitoring, 'contractions' | 'movements'>>(
-      `SELECT ${MONITORING_COLUMNS} FROM monitoring WHERE id = $1`,
-      [id]
+      `SELECT ${MONITORING_COLUMNS} FROM monitoring WHERE id = $1 AND user_id = $2`,
+      [id, userId]
     );
     return rows[0] ? this.withEvents(rows[0]) : null;
   };
 
-  findRunning = async (): Promise<Monitoring | null> => {
+  findRunning = async (userId: number): Promise<Monitoring | null> => {
     const { rows } = await this.pool.query<Omit<Monitoring, 'contractions' | 'movements'>>(
-      `SELECT ${MONITORING_COLUMNS} FROM monitoring WHERE stopped_at IS NULL`
+      `SELECT ${MONITORING_COLUMNS} FROM monitoring WHERE user_id = $1 AND stopped_at IS NULL`,
+      [userId]
     );
     return rows[0] ? this.withEvents(rows[0]) : null;
   };
 
-  list = async (): Promise<MonitoringSummary[]> => {
+  list = async (userId: number): Promise<MonitoringSummary[]> => {
     const { rows } = await this.pool.query<MonitoringSummary>(
       `SELECT m.id, m.started_at AS "startedAt", m.stopped_at AS "stoppedAt",
          (SELECT count(*)::int FROM contraction c WHERE c.monitoring_id = m.id) AS "contractionCount",
          (SELECT count(*)::int FROM movement v WHERE v.monitoring_id = m.id) AS "movementCount"
        FROM monitoring m
-       ORDER BY m.started_at DESC`
+       WHERE m.user_id = $1
+       ORDER BY m.started_at DESC`,
+      [userId]
     );
     return rows;
   };
 
-  insert = async ({ id, startedAt }: NewMonitoring): Promise<Monitoring> => {
+  insert = async (userId: number, { id, startedAt }: NewMonitoring): Promise<Monitoring> => {
     const { rows } = await this.pool.query<Omit<Monitoring, 'contractions' | 'movements'>>(
-      `INSERT INTO monitoring (id, started_at) VALUES ($1, $2) RETURNING ${MONITORING_COLUMNS}`,
-      [id, startedAt]
+      `INSERT INTO monitoring (id, user_id, started_at) VALUES ($1, $2, $3) RETURNING ${MONITORING_COLUMNS}`,
+      [id, userId, startedAt]
     );
     return { ...rows[0], contractions: [], movements: [] };
   };
@@ -54,9 +57,13 @@ export class PostgresMonitoringRepository implements MonitoringRepository {
     await this.pool.query('UPDATE monitoring SET stopped_at = $2 WHERE id = $1', [id, stoppedAt]);
   };
 
-  remove = async (id: string): Promise<boolean> => {
-    const { rowCount } = await this.pool.query('DELETE FROM monitoring WHERE id = $1', [id]);
+  remove = async (id: string, userId: number): Promise<boolean> => {
+    const { rowCount } = await this.pool.query('DELETE FROM monitoring WHERE id = $1 AND user_id = $2', [id, userId]);
     return rowCount === 1;
+  };
+
+  adoptUnowned = async (userId: number): Promise<void> => {
+    await this.pool.query('UPDATE monitoring SET user_id = $1 WHERE user_id IS NULL', [userId]);
   };
 
   saveContraction = async (monitoringId: string, { id, startedAt, endedAt, intensity }: Contraction): Promise<void> => {

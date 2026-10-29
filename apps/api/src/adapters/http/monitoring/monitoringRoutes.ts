@@ -1,6 +1,7 @@
 //~ Monitoring routes — the history, one monitoring, and every tap made
 // during it. Taps use PUT with an id made by the phone: the offline queue may
-// send the same request twice, and PUT lands it once.
+// send the same request twice, and PUT lands it once. Everything is scoped to
+// the signed-in user from the access-token cookie.
 import type { FastifyInstance } from 'fastify';
 import type { StartMonitoring } from '../../../core/monitoring/startMonitoring.js';
 import type { StopMonitoring } from '../../../core/monitoring/stopMonitoring.js';
@@ -120,13 +121,16 @@ export const monitoringRoutes =
     removeMovement
   }: MonitoringUseCases) =>
   async (app: FastifyInstance) => {
-    app.get('/api/v1/monitorings', async () => ({ monitorings: await listMonitorings.handle() }));
+    app.get('/api/v1/monitorings', { preHandler: [app.authenticate] }, async (request) => ({
+      monitorings: await listMonitorings.handle(request.user.sub)
+    }));
 
     app.post<{ Body: StartBody }>(
       '/api/v1/monitorings',
-      { schema: { body: startBodySchema } },
+      { preHandler: [app.authenticate], schema: { body: startBodySchema } },
       async (request, reply) => {
         const result = await startMonitoring.handle({
+          userId: request.user.sub,
           id: request.body.id,
           startedAt: new Date(request.body.startedAt)
         });
@@ -141,9 +145,9 @@ export const monitoringRoutes =
 
     app.get<{ Params: IdParams }>(
       '/api/v1/monitorings/:id',
-      { schema: { params: idParamsSchema } },
+      { preHandler: [app.authenticate], schema: { params: idParamsSchema } },
       async (request, reply) => {
-        const result = await getMonitoring.handle(request.params.id);
+        const result = await getMonitoring.handle(request.params.id, request.user.sub);
 
         if (!result.ok) {
           return reply.code(statusFor(result.error)).send({ error: result.error });
@@ -155,9 +159,13 @@ export const monitoringRoutes =
 
     app.post<{ Params: IdParams; Body: StopBody }>(
       '/api/v1/monitorings/:id/stop',
-      { schema: { params: idParamsSchema, body: stopBodySchema } },
+      { preHandler: [app.authenticate], schema: { params: idParamsSchema, body: stopBodySchema } },
       async (request, reply) => {
-        const result = await stopMonitoring.handle(request.params.id, new Date(request.body.stoppedAt));
+        const result = await stopMonitoring.handle(
+          request.params.id,
+          request.user.sub,
+          new Date(request.body.stoppedAt)
+        );
 
         if (!result.ok) {
           return reply.code(statusFor(result.error)).send({ error: result.error });
@@ -169,9 +177,9 @@ export const monitoringRoutes =
 
     app.delete<{ Params: IdParams }>(
       '/api/v1/monitorings/:id',
-      { schema: { params: idParamsSchema } },
+      { preHandler: [app.authenticate], schema: { params: idParamsSchema } },
       async (request, reply) => {
-        const result = await deleteMonitoring.handle(request.params.id);
+        const result = await deleteMonitoring.handle(request.params.id, request.user.sub);
 
         if (!result.ok) {
           return reply.code(statusFor(result.error)).send({ error: result.error });
@@ -183,10 +191,10 @@ export const monitoringRoutes =
 
     app.put<{ Params: EventParams; Body: ContractionBody }>(
       '/api/v1/monitorings/:id/contractions/:eventId',
-      { schema: { params: eventParamsSchema, body: contractionBodySchema } },
+      { preHandler: [app.authenticate], schema: { params: eventParamsSchema, body: contractionBodySchema } },
       async (request, reply) => {
         const { startedAt, endedAt, intensity } = request.body;
-        const result = await saveContraction.handle(request.params.id, {
+        const result = await saveContraction.handle(request.params.id, request.user.sub, {
           id: request.params.eventId,
           startedAt: new Date(startedAt),
           endedAt: endedAt === null ? null : new Date(endedAt),
@@ -203,9 +211,9 @@ export const monitoringRoutes =
 
     app.delete<{ Params: EventParams }>(
       '/api/v1/monitorings/:id/contractions/:eventId',
-      { schema: { params: eventParamsSchema } },
+      { preHandler: [app.authenticate], schema: { params: eventParamsSchema } },
       async (request, reply) => {
-        const result = await removeContraction.handle(request.params.id, request.params.eventId);
+        const result = await removeContraction.handle(request.params.id, request.user.sub, request.params.eventId);
 
         if (!result.ok) {
           return reply.code(statusFor(result.error)).send({ error: result.error });
@@ -217,9 +225,9 @@ export const monitoringRoutes =
 
     app.put<{ Params: EventParams; Body: MovementBody }>(
       '/api/v1/monitorings/:id/movements/:eventId',
-      { schema: { params: eventParamsSchema, body: movementBodySchema } },
+      { preHandler: [app.authenticate], schema: { params: eventParamsSchema, body: movementBodySchema } },
       async (request, reply) => {
-        const result = await recordMovement.handle(request.params.id, {
+        const result = await recordMovement.handle(request.params.id, request.user.sub, {
           id: request.params.eventId,
           at: new Date(request.body.at)
         });
@@ -234,9 +242,9 @@ export const monitoringRoutes =
 
     app.delete<{ Params: EventParams }>(
       '/api/v1/monitorings/:id/movements/:eventId',
-      { schema: { params: eventParamsSchema } },
+      { preHandler: [app.authenticate], schema: { params: eventParamsSchema } },
       async (request, reply) => {
-        const result = await removeMovement.handle(request.params.id, request.params.eventId);
+        const result = await removeMovement.handle(request.params.id, request.user.sub, request.params.eventId);
 
         if (!result.ok) {
           return reply.code(statusFor(result.error)).send({ error: result.error });

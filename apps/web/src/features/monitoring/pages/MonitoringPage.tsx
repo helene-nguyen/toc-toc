@@ -28,6 +28,7 @@ import '../monitoring.css';
 
 const SYNC_MESSAGES: Record<string, string> = {
   OFFLINE: 'Serveur injoignable : les saisies sont gardées sur le téléphone et partiront dès que possible.',
+  SIGNED_OUT: 'Votre session a expiré : reconnectez-vous pour envoyer les saisies gardées sur le téléphone.',
   IN_THE_FUTURE: "Une saisie a été refusée : l'heure du téléphone est en avance sur celle du serveur."
 };
 

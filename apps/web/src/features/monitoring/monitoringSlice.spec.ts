@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  accountChanged,
   contractionTapped,
   initialMonitoringState,
   intensityChosen,
@@ -131,6 +132,18 @@ describe('monitoringSlice', () => {
     expect(kinds(sent)).toEqual(['recordMovement']);
     expect(rejected.outbox).toEqual([]);
     expect(rejected.syncError).toBe('IN_THE_FUTURE');
+  });
+
+  it('keeps data recorded before sign-in for the first account, starts empty for another', () => {
+    const before = play(monitoringStarted({ id: 'm1', at: at(0) }));
+
+    const first = monitoringReducer(before, accountChanged(7));
+    const again = monitoringReducer(first, accountChanged(7));
+    const other = monitoringReducer(first, accountChanged(8));
+
+    expect(first).toMatchObject({ ownerId: 7, live: { id: 'm1' } });
+    expect(again).toBe(first);
+    expect(other).toEqual({ ...initialMonitoringState, ownerId: 8 });
   });
 
   it('forgets a stopped monitoring deleted from the history, never a running one', () => {

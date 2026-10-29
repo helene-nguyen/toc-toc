@@ -13,8 +13,12 @@ export class RecordMovement {
     private readonly clock: Clock
   ) {}
 
-  handle = async (monitoringId: string, movement: Movement): Promise<Result<Movement, RecordMovementError>> => {
-    const monitoring = await this.monitorings.findById(monitoringId);
+  handle = async (
+    monitoringId: string,
+    userId: number,
+    movement: Movement
+  ): Promise<Result<Movement, RecordMovementError>> => {
+    const monitoring = await this.monitorings.findById(monitoringId, userId);
     if (!monitoring) return err('MONITORING_NOT_FOUND');
 
     const timeError = checkTime(monitoring, movement.at, this.clock.now());

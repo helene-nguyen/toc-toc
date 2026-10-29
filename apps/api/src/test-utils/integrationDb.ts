@@ -11,7 +11,14 @@ export const testDbConfig = () => ({
 
 export const createTestPool = (): pg.Pool => new pg.Pool(testDbConfig());
 
-//~ Wipe the data between tests — contractions and movements go with their monitoring
+//~ Wipe the data between tests — monitorings (and their taps) and Google
+// links go with their user; legacy monitorings without one are cleared too
 export const truncateAll = async (pool: pg.Pool): Promise<void> => {
-  await pool.query('TRUNCATE monitoring CASCADE');
+  await pool.query('TRUNCATE "user", monitoring RESTART IDENTITY CASCADE');
+};
+
+//~ A user to own the monitorings of a spec
+export const insertUser = async (pool: pg.Pool, email = 'helene@example.com'): Promise<number> => {
+  const { rows } = await pool.query<{ id: number }>(`INSERT INTO "user" (email) VALUES ($1) RETURNING id`, [email]);
+  return rows[0].id;
 };

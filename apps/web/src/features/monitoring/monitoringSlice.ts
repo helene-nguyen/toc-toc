@@ -20,6 +20,8 @@ export type OutboxRequest = { seq: number } & (
 type NewRequest = OutboxRequest extends infer R ? (R extends OutboxRequest ? Omit<R, 'seq'> : never) : never;
 
 export interface MonitoringState {
+  // whose data this is: a phone can be shared, each account keeps its own
+  ownerId: number | null;
   // the monitoring running on this phone, or the last one once stopped
   live: Monitoring | null;
   outbox: OutboxRequest[];
@@ -28,7 +30,13 @@ export interface MonitoringState {
   syncError: string | null;
 }
 
-export const initialMonitoringState: MonitoringState = { live: null, outbox: [], nextSeq: 1, syncError: null };
+export const initialMonitoringState: MonitoringState = {
+  ownerId: null,
+  live: null,
+  outbox: [],
+  nextSeq: 1,
+  syncError: null
+};
 
 //~ A tap: a fresh id and the moment it happened. Tests pass their own.
 export interface Tap {
@@ -162,6 +170,20 @@ const monitoringSlice = createSlice({
       );
     },
 
+    //~ Who is signed in, once known. Data recorded before accounts existed
+    // (no owner yet) stays with the first account; another account starts empty.
+    accountChanged: (state, { payload: userId }: PayloadAction<number>) => {
+      if (state.ownerId === userId) return;
+      if (state.ownerId === null) {
+        state.ownerId = userId;
+        return;
+      }
+      return { ...initialMonitoringState, ownerId: userId };
+    },
+
+    //~ Signing out leaves nothing of this account on the phone
+    signedOut: () => initialMonitoringState,
+
     //~ Outcomes of useOutboxSync
     requestSent: (state, { payload: seq }: PayloadAction<number>) => {
       state.outbox = state.outbox.filter((request) => request.seq !== seq);
@@ -172,14 +194,17 @@ const monitoringSlice = createSlice({
       state.outbox = state.outbox.filter((request) => request.seq !== payload.seq);
       state.syncError = payload.error;
     },
-    // the server can't be reached: the queue waits and retries
-    syncPaused: (state) => {
-      state.syncError = 'OFFLINE';
+    // the server can't be reached, or the session needs signing in again:
+    // the queue waits and retries
+    syncPaused: (state, { payload = 'OFFLINE' }: PayloadAction<'OFFLINE' | 'SIGNED_OUT' | undefined>) => {
+      state.syncError = payload;
     }
   }
 });
 
 export const {
+  accountChanged,
+  signedOut,
   monitoringStarted,
   monitoringStopped,
   contractionTapped,

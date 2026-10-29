@@ -35,9 +35,10 @@ export class SaveContraction {
 
   handle = async (
     monitoringId: string,
+    userId: number,
     contraction: Contraction
   ): Promise<Result<Contraction, SaveContractionError>> => {
-    const monitoring = await this.monitorings.findById(monitoringId);
+    const monitoring = await this.monitorings.findById(monitoringId, userId);
     if (!monitoring) return err('MONITORING_NOT_FOUND');
 
     const now = this.clock.now();

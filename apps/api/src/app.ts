@@ -3,10 +3,25 @@ import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import type pg from 'pg';
+import type { CreateUserAccount } from './core/user/createUserAccount.js';
+import type { AuthenticateUser } from './core/user/authenticateUser.js';
+import type { SignInWithProvider } from './core/user/signInWithProvider.js';
+import type { GetUser } from './core/user/getUser.js';
+import { setupAuth } from './adapters/http/authentication/setupAuth.js';
+import { sessionRoutes } from './adapters/http/authentication/sessionRoutes.js';
+import { signUpRoute } from './adapters/http/authentication/signUpRoute.js';
+import { setupGoogleOAuth, type GoogleOAuthConfig } from './adapters/http/authentication/googleOAuth.js';
 import { monitoringRoutes, type MonitoringUseCases } from './adapters/http/monitoring/monitoringRoutes.js';
 
 export interface AppDependencies {
+  createUserAccount: CreateUserAccount;
+  authenticateUser: AuthenticateUser;
+  signInWithProvider: SignInWithProvider;
+  getUser: GetUser;
   monitoring: MonitoringUseCases;
+  // optional: without credentials "Sign in with Google" simply doesn't exist
+  googleOAuth?: GoogleOAuthConfig;
+  jwtSecret: string;
   // the built web app (apps/web/dist) — set in the Docker image, where the
   // API serves it; in development Vite serves it instead
   webDir?: string;
@@ -16,7 +31,17 @@ export interface AppDependencies {
 //~ Build the Fastify instance
 // Kept separate from index.ts so tests can build the app without opening a port.
 // Dependencies are injected — the composition root is index.ts.
-export const buildApp = ({ monitoring, webDir, pool }: AppDependencies) => {
+export const buildApp = ({
+  createUserAccount,
+  authenticateUser,
+  signInWithProvider,
+  getUser,
+  monitoring,
+  googleOAuth,
+  jwtSecret,
+  webDir,
+  pool
+}: AppDependencies) => {
   const app = Fastify({
     logger:
       process.env.NODE_ENV === 'test'
@@ -30,9 +55,16 @@ export const buildApp = ({ monitoring, webDir, pool }: AppDependencies) => {
   // The web app goes through the Vite proxy, and in production it is served
   // from the same origin, so no CORS at all.
   if (process.env.NODE_ENV !== 'production') {
-    app.register(fastifyCors, { origin: true });
+    app.register(fastifyCors, { origin: true, credentials: true });
   }
 
+  setupAuth(app, jwtSecret);
+  if (googleOAuth) {
+    setupGoogleOAuth(app, googleOAuth, signInWithProvider);
+  }
+
+  app.register(signUpRoute(createUserAccount));
+  app.register(sessionRoutes({ authenticateUser, getUser, googleEnabled: googleOAuth !== undefined }));
   app.register(monitoringRoutes(monitoring));
 
   app.get('/health', async () => {

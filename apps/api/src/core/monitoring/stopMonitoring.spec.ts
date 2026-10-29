@@ -9,11 +9,11 @@ describe('StopMonitoring', () => {
   beforeEach(async () => {
     monitorings = new InMemoryMonitoringRepository();
     stopMonitoring = new StopMonitoring(monitorings, new FakeClock(at(60)));
-    await monitorings.insert({ id: ids.monitoring, startedAt: at(0) });
+    await monitorings.insert(1, { id: ids.monitoring, startedAt: at(0) });
   });
 
   it('stops the monitoring at the time the phone sent', async () => {
-    const result = await stopMonitoring.handle(ids.monitoring, at(55));
+    const result = await stopMonitoring.handle(ids.monitoring, 1, at(55));
 
     expect(result).toEqual({ ok: true, value: expect.objectContaining({ stoppedAt: at(55) }) });
   });
@@ -26,15 +26,15 @@ describe('StopMonitoring', () => {
       intensity: 2
     });
 
-    const result = await stopMonitoring.handle(ids.monitoring, at(55));
+    const result = await stopMonitoring.handle(ids.monitoring, 1, at(55));
 
     expect(result.ok && result.value.contractions[0].endedAt).toEqual(at(55));
   });
 
   it('changes nothing when stopped twice', async () => {
-    await stopMonitoring.handle(ids.monitoring, at(55));
+    await stopMonitoring.handle(ids.monitoring, 1, at(55));
 
-    const result = await stopMonitoring.handle(ids.monitoring, at(58));
+    const result = await stopMonitoring.handle(ids.monitoring, 1, at(58));
 
     expect(result).toEqual({ ok: true, value: expect.objectContaining({ stoppedAt: at(55) }) });
   });
@@ -42,12 +42,12 @@ describe('StopMonitoring', () => {
   it("refuses a stop before the last tap, before the start or in the future", async () => {
     await monitorings.saveMovement(ids.monitoring, { id: ids.movement, at: at(50) });
 
-    expect(await stopMonitoring.handle(ids.monitoring, at(45))).toEqual({ ok: false, error: 'BEFORE_LAST_EVENT' });
-    expect(await stopMonitoring.handle(ids.monitoring, at(-1))).toEqual({ ok: false, error: 'BEFORE_START' });
-    expect(await stopMonitoring.handle(ids.monitoring, at(90))).toEqual({ ok: false, error: 'IN_THE_FUTURE' });
+    expect(await stopMonitoring.handle(ids.monitoring, 1, at(45))).toEqual({ ok: false, error: 'BEFORE_LAST_EVENT' });
+    expect(await stopMonitoring.handle(ids.monitoring, 1, at(-1))).toEqual({ ok: false, error: 'BEFORE_START' });
+    expect(await stopMonitoring.handle(ids.monitoring, 1, at(90))).toEqual({ ok: false, error: 'IN_THE_FUTURE' });
   });
 
   it('answers MONITORING_NOT_FOUND for an unknown id', async () => {
-    expect(await stopMonitoring.handle(ids.other, at(55))).toEqual({ ok: false, error: 'MONITORING_NOT_FOUND' });
+    expect(await stopMonitoring.handle(ids.other, 1, at(55))).toEqual({ ok: false, error: 'MONITORING_NOT_FOUND' });
   });
 });

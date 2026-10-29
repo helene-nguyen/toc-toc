@@ -3,7 +3,9 @@
 // - sent → removed from the queue
 // - server unreachable (offline, Pi down, 5xx) → the queue waits, and tries
 //   again when the phone comes back online or every 15 seconds
-// - refused (4xx) → dropped with its reason, so one bad request never
+// - session over (401, after the base query tried to renew it) → the queue
+//   waits until the person signs in again; nothing is dropped
+// - refused (other 4xx) → dropped with its reason, so one bad request never
 //   blocks the rest; deleting what is already gone (404) counts as done
 import { useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
@@ -13,7 +15,7 @@ import { requestRejected, requestSent, syncPaused, type OutboxRequest } from '..
 
 const RETRY_MS = 15_000;
 
-type Outcome = { sent: true } | { offline: true } | { rejected: string };
+type Outcome = { sent: true } | { offline: true } | { signedOut: true } | { rejected: string };
 
 const call = (dispatch: AppDispatch, request: OutboxRequest) => {
   const { endpoints } = monitoringApi;
@@ -42,6 +44,7 @@ const send = async (dispatch: AppDispatch, request: OutboxRequest): Promise<Outc
     // a string ('FETCH_ERROR', 'TIMEOUT_ERROR'…) when nothing came back
     const { status, data } = (caught ?? {}) as { status?: number | string; data?: { error?: string } };
     if (typeof status !== 'number' || status >= 500) return { offline: true };
+    if (status === 401) return { signedOut: true };
     if (status === 404 && request.kind.startsWith('remove')) return { sent: true };
     return { rejected: data?.error ?? `HTTP_${status}` };
   }
@@ -69,10 +72,11 @@ export const useOutboxSync = () => {
     send(dispatch, next).then((outcome) => {
       busy.current = false;
       if ('sent' in outcome) dispatch(requestSent(next.seq));
-      else if ('offline' in outcome) dispatch(syncPaused());
+      else if ('offline' in outcome) dispatch(syncPaused('OFFLINE'));
+      else if ('signedOut' in outcome) dispatch(syncPaused('SIGNED_OUT'));
       else dispatch(requestRejected({ seq: next.seq, error: outcome.rejected }));
       // the queue may have changed while this one was in flight: look again
-      if (!('offline' in outcome)) setRetry((count) => count + 1);
+      if ('sent' in outcome || 'rejected' in outcome) setRetry((count) => count + 1);
     });
   }, [next, retry, dispatch]);
 };

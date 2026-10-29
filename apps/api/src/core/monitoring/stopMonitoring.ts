@@ -22,8 +22,8 @@ export class StopMonitoring {
     private readonly clock: Clock
   ) {}
 
-  handle = async (id: string, stoppedAt: Date): Promise<Result<Monitoring, StopMonitoringError>> => {
-    const monitoring = await this.monitorings.findById(id);
+  handle = async (id: string, userId: number, stoppedAt: Date): Promise<Result<Monitoring, StopMonitoringError>> => {
+    const monitoring = await this.monitorings.findById(id, userId);
     if (!monitoring) return err('MONITORING_NOT_FOUND');
     if (monitoring.stoppedAt) return ok(monitoring);
 
@@ -35,6 +35,6 @@ export class StopMonitoring {
     if (ongoing) await this.monitorings.saveContraction(id, { ...ongoing, endedAt: stoppedAt });
     await this.monitorings.stop(id, stoppedAt);
 
-    return ok((await this.monitorings.findById(id))!);
+    return ok((await this.monitorings.findById(id, userId))!);
   };
 }

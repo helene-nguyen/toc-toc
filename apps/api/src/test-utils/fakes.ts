@@ -1,6 +1,16 @@
 //~ In-memory implementations of the driven ports, for unit and route tests.
 // Same contracts as the real adapters, no database needed.
+import { err, ok, type Result } from '../core/result.js';
 import type { Clock } from '../core/clock.js';
+import type {
+  AuthProviderRepository,
+  NewUserAccount,
+  OAuthProviderName,
+  PasswordHasher,
+  UserAccount,
+  UserAccountRepository,
+  UserCredentials
+} from '../core/user/ports.js';
 import type {
   Contraction,
   Monitoring,
@@ -22,28 +32,34 @@ export class FakeClock implements Clock {
 
 const byTime = <T>(time: (item: T) => Date) => (a: T, b: T) => time(a).getTime() - time(b).getTime();
 
+// a monitoring as stored: with its owner (null before accounts existed)
+type MonitoringRow = Monitoring & { userId: number | null };
+
 export class InMemoryMonitoringRepository implements MonitoringRepository {
-  readonly rows: Monitoring[] = [];
+  readonly rows: MonitoringRow[] = [];
 
   // a copy, like a fresh read from the database: callers can't mutate the store
-  private read = (row: Monitoring): Monitoring => ({
-    ...row,
-    contractions: [...row.contractions].sort(byTime((contraction) => contraction.startedAt)),
-    movements: [...row.movements].sort(byTime((movement) => movement.at))
+  private read = ({ id, startedAt, stoppedAt, contractions, movements }: MonitoringRow): Monitoring => ({
+    id,
+    startedAt,
+    stoppedAt,
+    contractions: [...contractions].sort(byTime((contraction) => contraction.startedAt)),
+    movements: [...movements].sort(byTime((movement) => movement.at))
   });
 
-  findById = async (id: string): Promise<Monitoring | null> => {
-    const row = this.rows.find((monitoring) => monitoring.id === id);
+  findById = async (id: string, userId: number): Promise<Monitoring | null> => {
+    const row = this.rows.find((monitoring) => monitoring.id === id && monitoring.userId === userId);
     return row ? this.read(row) : null;
   };
 
-  findRunning = async (): Promise<Monitoring | null> => {
-    const row = this.rows.find((monitoring) => monitoring.stoppedAt === null);
+  findRunning = async (userId: number): Promise<Monitoring | null> => {
+    const row = this.rows.find((monitoring) => monitoring.userId === userId && monitoring.stoppedAt === null);
     return row ? this.read(row) : null;
   };
 
-  list = async (): Promise<MonitoringSummary[]> =>
-    [...this.rows]
+  list = async (userId: number): Promise<MonitoringSummary[]> =>
+    this.rows
+      .filter((monitoring) => monitoring.userId === userId)
       .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
       .map(({ id, startedAt, stoppedAt, contractions, movements }) => ({
         id,
@@ -53,8 +69,8 @@ export class InMemoryMonitoringRepository implements MonitoringRepository {
         movementCount: movements.length
       }));
 
-  insert = async ({ id, startedAt }: NewMonitoring): Promise<Monitoring> => {
-    const row: Monitoring = { id, startedAt, stoppedAt: null, contractions: [], movements: [] };
+  insert = async (userId: number | null, { id, startedAt }: NewMonitoring): Promise<Monitoring> => {
+    const row: MonitoringRow = { id, userId, startedAt, stoppedAt: null, contractions: [], movements: [] };
     this.rows.push(row);
     return this.read(row);
   };
@@ -64,8 +80,8 @@ export class InMemoryMonitoringRepository implements MonitoringRepository {
     if (row) row.stoppedAt = stoppedAt;
   };
 
-  remove = async (id: string): Promise<boolean> => {
-    const index = this.rows.findIndex((monitoring) => monitoring.id === id);
+  remove = async (id: string, userId: number): Promise<boolean> => {
+    const index = this.rows.findIndex((monitoring) => monitoring.id === id && monitoring.userId === userId);
     if (index === -1) return false;
     this.rows.splice(index, 1);
     return true;
@@ -96,6 +112,49 @@ export class InMemoryMonitoringRepository implements MonitoringRepository {
     row.movements = row.movements.filter((movement) => movement.id !== movementId);
     return true;
   };
+
+  adoptUnowned = async (userId: number): Promise<void> => {
+    for (const row of this.rows) if (row.userId === null) row.userId = userId;
+  };
+}
+
+export class InMemoryUserAccountRepository implements UserAccountRepository {
+  readonly rows: UserCredentials[] = [];
+
+  insert = async (user: NewUserAccount): Promise<Result<UserAccount, 'EMAIL_ALREADY_USED'>> => {
+    if (this.rows.some((row) => row.email === user.email)) return err('EMAIL_ALREADY_USED');
+    const row = { id: this.rows.length + 1, ...user };
+    this.rows.push(row);
+    return ok({ id: row.id, email: row.email, name: row.name });
+  };
+
+  findByEmail = async (email: string): Promise<UserCredentials | null> =>
+    this.rows.find((row) => row.email === email) ?? null;
+
+  findById = async (id: number): Promise<UserAccount | null> => {
+    const row = this.rows.find((candidate) => candidate.id === id);
+    return row ? { id: row.id, email: row.email, name: row.name } : null;
+  };
+}
+
+export class InMemoryAuthProviderRepository implements AuthProviderRepository {
+  readonly links: { userId: number; provider: OAuthProviderName; providerAccountId: string }[] = [];
+
+  constructor(private readonly users: InMemoryUserAccountRepository) {}
+
+  findUser = async (provider: OAuthProviderName, providerAccountId: string): Promise<UserAccount | null> => {
+    const link = this.links.find((l) => l.provider === provider && l.providerAccountId === providerAccountId);
+    return link ? this.users.findById(link.userId) : null;
+  };
+
+  link = async (userId: number, provider: OAuthProviderName, providerAccountId: string): Promise<void> => {
+    this.links.push({ userId, provider, providerAccountId });
+  };
+}
+
+export class FakePasswordHasher implements PasswordHasher {
+  hash = async (plain: string): Promise<string> => `hashed(${plain})`;
+  compare = async (plain: string, hash: string): Promise<boolean> => hash === `hashed(${plain})`;
 }
 
 //~ Fixed ids and times for readable specs
