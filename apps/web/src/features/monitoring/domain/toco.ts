@@ -11,7 +11,7 @@
 import type { Timeline } from './timeline';
 
 export const REST = 10;
-export const FALL = 15;
+export const FALL = 20;
 // [seconds after "start", mmHg]
 export const LANDMARKS: [number, number][] = [
   [0, REST],
