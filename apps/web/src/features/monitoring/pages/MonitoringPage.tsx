@@ -7,6 +7,7 @@ import { Link } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import {
   contractionTapped,
+  intensityChanged,
   intensityChosen,
   lastTapUndone,
   monitoringStarted,
@@ -186,6 +187,9 @@ export const MonitoringPage = () => {
                 dispatch(lastTapUndone());
                 setAskIntensity(false);
               }}
+              onIntensityChange={(contractionId, intensity) =>
+                dispatch(intensityChanged({ contractionId, intensity }))
+              }
             />
           </div>
         </>

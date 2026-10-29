@@ -192,6 +192,8 @@ export const TocoChart = ({ getTimeline, startedAt, mode, fitAtStart = false }: 
     const hudTimer = window.setInterval(() => {
       const tl = timeline();
       if (!tl) return;
+      // keep the fitted zoom current even while no frame is drawn (tab in the background)
+      if (view.fit && view.w) view.ppm = fitPpm(tl);
       setHud({
         window: span(win()),
         fit: view.fit,

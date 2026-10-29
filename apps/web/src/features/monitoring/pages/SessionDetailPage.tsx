@@ -4,8 +4,9 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { useAppDispatch } from '../../../app/hooks';
-import { useDeleteMonitoringMutation } from '../monitoringApi';
-import { liveForgotten } from '../monitoringSlice';
+import { useDeleteMonitoringMutation, useSaveContractionMutation } from '../monitoringApi';
+import { intensityChanged, liveForgotten } from '../monitoringSlice';
+import type { Intensity } from '../monitoringTypes';
 import { useMonitoring } from '../hooks/useMonitoring';
 import { toTimeline } from '../domain/timeline';
 import { sessionSummary } from '../domain/stats';
@@ -20,8 +21,10 @@ export const SessionDetailPage = () => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { monitoring, isLoading, isError } = useMonitoring(id);
+  const { monitoring, isLoading, isError, isLocal } = useMonitoring(id);
   const [deleteMonitoring, { isLoading: deleting }] = useDeleteMonitoringMutation();
+  const [saveContraction] = useSaveContractionMutation();
+  const [intensityError, setIntensityError] = useState(false);
   const [mode, setMode] = useState<ChartMode>('split');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
@@ -54,6 +57,23 @@ export const SessionDetailPage = () => {
     } catch {
       setDeleteError(true);
       setConfirmDelete(false);
+    }
+  };
+
+  //~ The session recorded on this phone goes through the outbox (works
+  // offline); an older one is saved straight to the API
+  const changeIntensity = async (contractionId: string, intensity: Intensity) => {
+    if (isLocal) {
+      dispatch(intensityChanged({ contractionId, intensity }));
+      return;
+    }
+    const contraction = monitoring.contractions.find((candidate) => candidate.id === contractionId);
+    if (!contraction) return;
+    try {
+      await saveContraction({ monitoringId: monitoring.id, contraction: { ...contraction, intensity } }).unwrap();
+      setIntensityError(false);
+    } catch {
+      setIntensityError(true);
     }
   };
 
@@ -131,7 +151,12 @@ export const SessionDetailPage = () => {
         />
       </div>
 
-      <ContractionLog monitoring={monitoring} timeline={timeline} />
+      {intensityError && (
+        <p className="monitoring__sync" data-error="true">
+          L'intensité n'a pas pu être enregistrée : le serveur est injoignable. Réessayez une fois connecté.
+        </p>
+      )}
+      <ContractionLog monitoring={monitoring} timeline={timeline} onIntensityChange={changeIntensity} />
     </div>
   );
 };

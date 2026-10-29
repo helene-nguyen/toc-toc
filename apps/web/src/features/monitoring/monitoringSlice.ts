@@ -113,6 +113,16 @@ const monitoringSlice = createSlice({
       enqueueSave(state, live.id, last);
     },
 
+    //~ The intensity changed afterwards, from the journal — the session may
+    // be stopped already; the server accepts the change either way
+    intensityChanged: (state, { payload }: PayloadAction<{ contractionId: string; intensity: Intensity }>) => {
+      const live = state.live;
+      const contraction = live?.contractions.find((candidate) => candidate.id === payload.contractionId);
+      if (!live || !contraction || contraction.intensity === payload.intensity) return;
+      contraction.intensity = payload.intensity;
+      enqueueSave(state, live.id, contraction);
+    },
+
     movementTapped: {
       reducer: (state, { payload: { id, at } }: PayloadAction<Tap>) => {
         const live = state.live;
@@ -174,6 +184,7 @@ export const {
   monitoringStopped,
   contractionTapped,
   intensityChosen,
+  intensityChanged,
   movementTapped,
   lastTapUndone,
   liveForgotten,

@@ -3,6 +3,7 @@ import {
   contractionTapped,
   initialMonitoringState,
   intensityChosen,
+  intensityChanged,
   lastTapUndone,
   liveForgotten,
   monitoringReducer,
@@ -51,6 +52,21 @@ describe('monitoringSlice', () => {
 
     expect(state.live?.contractions[0].intensity).toBe(3);
     expect(state.outbox.at(-1)).toMatchObject({ kind: 'saveContraction', contraction: { id: 'c1', intensity: 3 } });
+  });
+
+  it('changes the intensity of any contraction afterwards, even once stopped', () => {
+    const state = play(
+      monitoringStarted({ id: 'm1', at: at(0) }),
+      contractionTapped({ id: 'c1', at: at(5) }),
+      contractionTapped({ id: 'x', at: at(6) }),
+      contractionTapped({ id: 'c2', at: at(10) }),
+      contractionTapped({ id: 'x', at: at(11) }),
+      monitoringStopped({ id: 'x', at: at(20) }),
+      intensityChanged({ contractionId: 'c1', intensity: 1 })
+    );
+
+    expect(state.live?.contractions.map((contraction) => contraction.intensity)).toEqual([1, 2]);
+    expect(state.outbox.at(-1)).toMatchObject({ kind: 'saveContraction', contraction: { id: 'c1', intensity: 1 } });
   });
 
   it('records movements', () => {

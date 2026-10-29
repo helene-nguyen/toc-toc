@@ -10,6 +10,8 @@ export const useMonitoring = (id: string) => {
 
   return {
     monitoring: local ?? query.data ?? null,
+    // recorded on this phone: changes go through the outbox, not straight to the API
+    isLocal: local !== null,
     isLoading: local === null && query.isLoading,
     isError: local === null && query.isError
   };

@@ -1,10 +1,13 @@
 //~ The journal: one row per contraction, newest on top, with clock times —
-// the figures a midwife asks for on the phone.
-import type { Monitoring } from '../monitoringTypes';
+// the figures a midwife asks for on the phone. The felt intensity can be
+// changed on any row, during the session or afterwards; it doesn't move
+// the trace.
+import type { Intensity, Monitoring } from '../monitoringTypes';
 import type { Timeline } from '../domain/timeline';
 import { clockAt, minSec } from '../format';
 
-const INTENSITY_LABEL = { 1: 'Légère', 2: 'Moyenne', 3: 'Forte' } as const;
+const INTENSITY_LABEL: Record<Intensity, string> = { 1: 'Légère', 2: 'Moyenne', 3: 'Forte' };
+const INTENSITIES: Intensity[] = [1, 2, 3];
 
 interface ContractionLogProps {
   monitoring: Monitoring;
@@ -12,10 +15,21 @@ interface ContractionLogProps {
   // undo only makes sense while the monitoring runs
   canUndo?: boolean;
   onUndo?: () => void;
+  // without it, the intensity is shown read-only
+  onIntensityChange?: (contractionId: string, intensity: Intensity) => void;
 }
 
-export const ContractionLog = ({ monitoring, timeline, canUndo = false, onUndo }: ContractionLogProps) => {
+export const ContractionLog = ({
+  monitoring,
+  timeline,
+  canUndo = false,
+  onUndo,
+  onIntensityChange
+}: ContractionLogProps) => {
+  // the timeline lists contractions by start, like this sorted copy: same index, same contraction
+  const byStart = [...monitoring.contractions].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
   const rows = timeline.contractions.map((contraction, index) => ({
+    id: byStart[index]?.id ?? String(index),
     number: index + 1,
     contraction,
     interval: index === 0 ? null : contraction.start - timeline.contractions[index - 1].start
@@ -46,8 +60,8 @@ export const ContractionLog = ({ monitoring, timeline, canUndo = false, onUndo }
                 </td>
               </tr>
             )}
-            {[...rows].reverse().map(({ number, contraction, interval }) => (
-              <tr key={number}>
+            {[...rows].reverse().map(({ id, number, contraction, interval }) => (
+              <tr key={id}>
                 <td>{number}</td>
                 <td>{clockAt(monitoring.startedAt, contraction.start)}</td>
                 {contraction.end === null ? (
@@ -58,7 +72,22 @@ export const ContractionLog = ({ monitoring, timeline, canUndo = false, onUndo }
                 <td>{interval === null ? '–' : minSec(interval)}</td>
                 <td>
                   <span className="log__bar" style={{ width: contraction.intensity * 12 }} />{' '}
-                  {INTENSITY_LABEL[contraction.intensity]}
+                  {onIntensityChange ? (
+                    <select
+                      className="log__intensity"
+                      value={contraction.intensity}
+                      aria-label={`Intensité de la contraction ${number}`}
+                      onChange={(event) => onIntensityChange(id, Number(event.target.value) as Intensity)}
+                    >
+                      {INTENSITIES.map((intensity) => (
+                        <option key={intensity} value={intensity}>
+                          {INTENSITY_LABEL[intensity]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    INTENSITY_LABEL[contraction.intensity]
+                  )}
                 </td>
               </tr>
             ))}

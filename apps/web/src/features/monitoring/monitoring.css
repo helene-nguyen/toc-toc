@@ -477,6 +477,16 @@
   background: var(--contract);
   opacity: 0.75;
 }
+.log__intensity {
+  min-height: 36px;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
 .log__undo {
   align-self: flex-start;
   min-height: 44px;
