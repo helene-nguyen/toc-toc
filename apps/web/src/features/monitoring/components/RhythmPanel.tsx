@@ -35,7 +35,7 @@ export const RhythmPanel = ({ timeline }: { timeline: Timeline }) => {
       </div>
       <div className="rhythm__landmark" data-met={landmark.met}>
         <div className="rhythm__landmark-head">
-          <strong>Repère 5-1-1</strong>
+          <strong>Faut-il partir à la maternité ?</strong>
           <span className="rhythm__verdict">
             {landmark.met ? 'Atteint : contactez votre maternité' : `${metCount} / 3 critères`}
           </span>
@@ -47,7 +47,11 @@ export const RhythmPanel = ({ timeline }: { timeline: Timeline }) => {
             </li>
           ))}
         </ul>
-        <p>Moyennes sur la dernière heure. Repère indicatif : suivez les consignes de votre sage-femme ou maternité.</p>
+        <p>
+          Règle « 5-1-1 », souvent donnée pour un premier bébé : il est temps d'appeler la maternité quand les trois
+          conditions sont réunies. Calculée sur la dernière heure. Elle ne remplace pas les consignes de votre
+          sage-femme ou maternité.
+        </p>
       </div>
     </section>
   );

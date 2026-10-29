@@ -1,4 +1,4 @@
-//~ One past session: its whole trace (opened on "Tout", zoomable), the
+//~ One past session: its whole trace (opened on "Toute la session", zoomable), the
 // figures, the journal; from here it is printed or deleted. A session still
 // running belongs to the monitoring screen.
 import { useCallback, useRef, useState } from 'react';

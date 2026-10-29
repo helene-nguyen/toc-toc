@@ -1,7 +1,7 @@
 //~ The live chart: the trace scrolls with time, and can be explored.
 // - one finger drags through the past, two fingers pinch to zoom around
 //   them; on a computer, Ctrl + wheel zooms and a horizontal scroll pans
-// - − / + halve or double the zoom, "Tout" fits the whole session
+// - − / + halve or double the zoom, "Toute la session" fits it on screen
 // - "Direct" comes back to now; zooming without leaving now keeps following
 // The view lives in a ref and the canvas redraws every animation frame from
 // getTimeline(), so the trace moves smoothly without re-rendering React.
@@ -238,9 +238,10 @@ export const TocoChart = ({ getTimeline, startedAt, mode, fitAtStart = false }: 
             type="button"
             className="toco-chart__fit"
             aria-pressed={hud.fit}
+            title="Afficher toute la session d'un coup d'œil"
             onClick={() => actions.current.fit()}
           >
-            Tout
+            Toute la session
           </button>
         </span>
         <input

@@ -17,13 +17,20 @@ describe('tocoValue', () => {
   });
 
   it(`rises progressively over ${RISE} s after the start`, () => {
-    const early = tocoValue(timeline(), 103) - baseline(103);
-    const later = tocoValue(timeline(), 110) - baseline(110);
-    const top = tocoValue(timeline(), 100 + RISE) - baseline(100 + RISE);
+    const sample = (t: number) => tocoValue(timeline(), t) - baseline(t);
+    const early = sample(100 + RISE * 0.2);
+    const later = sample(100 + RISE * 0.6);
+    const top = sample(100 + RISE);
 
     expect(early).toBeGreaterThan(0);
     expect(early).toBeLessThan(later);
     expect(later).toBeLessThan(top);
+  });
+
+  it('takes a strong contraction close to 100 mmHg', () => {
+    const strong = timeline({ contractions: [{ start: 100, end: 160, intensity: 3 }] });
+
+    expect(Math.max(...[130, 135, 140, 145].map((t) => tocoValue(strong, t)))).toBeGreaterThan(92);
   });
 
   it('reaches a higher peak for a stronger contraction', () => {
