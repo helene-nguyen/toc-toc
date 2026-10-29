@@ -3,16 +3,7 @@
 import type { Timeline } from '../domain/timeline';
 import { fiveOneOne, rhythm } from '../domain/stats';
 import { minSec } from '../format';
-
-const Tile = ({ label, value, unit }: { label: string; value: string | number | null; unit?: string }) => (
-  <div className="rhythm__tile">
-    <span className="rhythm__label">{label}</span>
-    <span className="rhythm__value">
-      {value ?? '–'}
-      {value !== null && unit && <small>{unit}</small>}
-    </span>
-  </div>
-);
+import { StatTile as Tile } from './StatTile';
 
 export const RhythmPanel = ({ timeline }: { timeline: Timeline }) => {
   const now = rhythm(timeline);

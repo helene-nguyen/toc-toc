@@ -4,6 +4,7 @@ import {
   initialMonitoringState,
   intensityChosen,
   lastTapUndone,
+  liveForgotten,
   monitoringReducer,
   monitoringStarted,
   monitoringStopped,
@@ -114,5 +115,13 @@ describe('monitoringSlice', () => {
     expect(kinds(sent)).toEqual(['recordMovement']);
     expect(rejected.outbox).toEqual([]);
     expect(rejected.syncError).toBe('IN_THE_FUTURE');
+  });
+
+  it('forgets a stopped monitoring deleted from the history, never a running one', () => {
+    const running = play(monitoringStarted({ id: 'm1', at: at(0) }));
+    const stopped = monitoringReducer(running, monitoringStopped({ id: 'x', at: at(10) }));
+
+    expect(monitoringReducer(running, liveForgotten('m1')).live?.id).toBe('m1');
+    expect(monitoringReducer(stopped, liveForgotten('m1'))).toMatchObject({ live: null, outbox: [] });
   });
 });

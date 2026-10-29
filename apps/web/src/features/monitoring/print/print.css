@@ -1,0 +1,160 @@
+/*~ The A4 pages: real size inside, shrunk on screen by --print-scale (set
+   from the available width), full size and one per sheet when printed */
+.print-sheet {
+  --print-scale: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.print-sheet__frame {
+  position: relative;
+  width: calc(1123px * var(--print-scale));
+  height: calc(794px * var(--print-scale));
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 2px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+}
+.print-sheet__page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1123px;
+  height: 794px;
+  transform: scale(var(--print-scale));
+  transform-origin: top left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 36px 36px 30px;
+  background: #ffffff;
+  color: #17202d;
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+.print-sheet__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #17202d;
+}
+.print-sheet__header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+.print-sheet__header p {
+  margin: 0;
+  font-size: 12px;
+  color: #5b6677;
+}
+.print-sheet__meta {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 4px 24px;
+  margin: 0;
+  font-size: 12px;
+}
+.print-sheet__meta dt {
+  color: #5b6677;
+}
+.print-sheet__meta dd {
+  margin: 0;
+  font-family: var(--font-data);
+  font-weight: 600;
+}
+.print-sheet__notes {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #f4f6f9;
+}
+.print-sheet__row-label {
+  margin-bottom: 2px;
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: #5b6677;
+}
+.print-sheet__trace {
+  display: block;
+  width: 100%;
+  border: 1px solid #e2a6aa;
+}
+.print-sheet__section {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5b6677;
+}
+.print-sheet__journal {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.print-sheet__journal th {
+  padding: 0 8px 4px 0;
+  border-bottom: 1px solid #d5dbe3;
+  text-align: left;
+  color: #5b6677;
+}
+.print-sheet__journal td {
+  padding: 4px 8px 4px 0;
+  border-bottom: 1px solid #e6eaf0;
+  font-family: var(--font-data);
+}
+.print-sheet__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid #d5dbe3;
+  font-size: 10px;
+  color: #5b6677;
+}
+
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    height: auto;
+    background: #ffffff;
+  }
+  .shell {
+    padding: 0;
+  }
+  .shell__main {
+    max-width: none;
+  }
+  .shell__top,
+  .shell__nav,
+  .print-preview__bar {
+    display: none !important;
+  }
+  .print-preview {
+    padding: 0;
+  }
+  .print-sheet {
+    --print-scale: 1;
+    gap: 0;
+  }
+  .print-sheet__frame {
+    width: 297mm;
+    height: 210mm;
+    border-radius: 0;
+    box-shadow: none;
+    break-after: page;
+  }
+  .print-sheet__frame:last-child {
+    break-after: auto;
+  }
+}

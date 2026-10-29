@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fiveOneOne, rhythm } from './stats';
+import { fiveOneOne, rhythm, sessionSummary } from './stats';
 import type { Timeline, TimelineContraction } from './timeline';
 
 // one contraction every `every` seconds from `from`, each lasting `lasting`
@@ -66,6 +66,26 @@ describe('fiveOneOne', () => {
       everyFiveMinutes: true,
       forOneHour: false,
       met: false
+    });
+  });
+});
+
+describe('sessionSummary', () => {
+  it('sums up a whole session', () => {
+    const timeline: Timeline = {
+      now: 7200,
+      running: false,
+      contractions: regular(4, 600, 50),
+      movements: [100, 200, 300, 4000]
+    };
+
+    expect(sessionSummary(timeline)).toEqual({
+      duration: 7200,
+      contractionCount: 4,
+      averageInterval: 600,
+      averageDuration: 50,
+      movementCount: 4,
+      movementsPerHour: 2
     });
   });
 });

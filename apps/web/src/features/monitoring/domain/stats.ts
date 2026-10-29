@@ -58,3 +58,27 @@ export const fiveOneOne = ({ now, contractions }: Timeline): FiveOneOne => {
   const forOneHour = now >= 3600;
   return { everyFiveMinutes, lastingOneMinute, forOneHour, met: everyFiveMinutes && lastingOneMinute && forOneHour };
 };
+
+//~ A whole session at a glance — for the history and the printed page
+export interface SessionSummary {
+  // seconds
+  duration: number;
+  contractionCount: number;
+  // seconds, start to start, over the whole session
+  averageInterval: number | null;
+  // seconds, finished contractions only
+  averageDuration: number | null;
+  movementCount: number;
+  movementsPerHour: number | null;
+}
+
+export const sessionSummary = ({ now, contractions, movements }: Timeline): SessionSummary => ({
+  duration: now,
+  contractionCount: contractions.length,
+  averageInterval: mean(intervals(contractions.map((contraction) => contraction.start))),
+  averageDuration: mean(
+    contractions.filter((contraction) => contraction.end !== null).map((contraction) => contraction.end! - contraction.start)
+  ),
+  movementCount: movements.length,
+  movementsPerHour: now > 0 ? movements.length / (now / 3600) : null
+});

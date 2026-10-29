@@ -9,11 +9,12 @@ const INTENSITY_LABEL = { 1: 'Légère', 2: 'Moyenne', 3: 'Forte' } as const;
 interface ContractionLogProps {
   monitoring: Monitoring;
   timeline: Timeline;
-  canUndo: boolean;
-  onUndo: () => void;
+  // undo only makes sense while the monitoring runs
+  canUndo?: boolean;
+  onUndo?: () => void;
 }
 
-export const ContractionLog = ({ monitoring, timeline, canUndo, onUndo }: ContractionLogProps) => {
+export const ContractionLog = ({ monitoring, timeline, canUndo = false, onUndo }: ContractionLogProps) => {
   const rows = timeline.contractions.map((contraction, index) => ({
     number: index + 1,
     contraction,

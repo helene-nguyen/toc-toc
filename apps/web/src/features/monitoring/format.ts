@@ -20,3 +20,13 @@ export const clockAt = (startedAt: string, seconds = 0) => {
   const date = new Date(Date.parse(startedAt) + seconds * 1000);
   return `${two(date.getHours())}:${two(date.getMinutes())}`;
 };
+
+// "jeudi 29 octobre", capitalised for a title
+const dayFormat = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+export const longDay = (iso: string) => {
+  const day = dayFormat.format(new Date(iso));
+  return day.charAt(0).toUpperCase() + day.slice(1);
+};
+
+// "29/10/2026"
+export const shortDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR');

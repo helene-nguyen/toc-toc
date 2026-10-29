@@ -106,8 +106,14 @@ export const MonitoringPage = () => {
             : live
               ? `Session terminée à ${clockAt(live.stoppedAt!)} · `
               : 'Aucun monitoring en cours'}
-          {live && !running && <Link to="/sessions">voir Mes sessions</Link>}
+          {live && !running && <Link to={`/sessions/${live.id}`}>voir la session</Link>}
         </span>
+        <span className="monitoring__actions">
+        {live && (live.contractions.length > 0 || live.movements.length > 0) && !confirmStop && (
+          <Link to={`/sessions/${live.id}/print`} className="monitoring__ghost monitoring__link">
+            Imprimer
+          </Link>
+        )}
         {running &&
           (confirmStop ? (
             <span className="monitoring__confirm">
@@ -124,6 +130,7 @@ export const MonitoringPage = () => {
               Arrêter
             </button>
           ))}
+        </span>
       </div>
 
       {(outbox.length > 0 || syncError) && (

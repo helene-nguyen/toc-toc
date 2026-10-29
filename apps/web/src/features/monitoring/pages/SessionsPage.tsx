@@ -1,4 +1,6 @@
-//~ The history: every monitoring, newest first, read from the API.
+//~ The history: every monitoring, newest first, read from the API. A tap
+// opens the session — or the monitoring screen for the one still running.
+import { Link } from 'react-router';
 import { useListMonitoringsQuery } from '../monitoringApi';
 import '../monitoring.css';
 
@@ -23,7 +25,11 @@ export const SessionsPage = () => {
       )}
       <ul className="sessions__list">
         {monitorings.map((monitoring) => (
-          <li key={monitoring.id} className="sessions__item">
+          <li key={monitoring.id}>
+            <Link
+              to={monitoring.stoppedAt === null ? '/' : `/sessions/${monitoring.id}`}
+              className="sessions__item"
+            >
             <span className="sessions__when">
               {dayFormat.format(new Date(monitoring.startedAt))} · {timeFormat.format(new Date(monitoring.startedAt))}
             </span>
@@ -33,6 +39,7 @@ export const SessionsPage = () => {
               <span>{monitoring.movementCount} mvts bébé</span>
               {monitoring.stoppedAt === null && <span className="sessions__badge">En cours</span>}
             </span>
+            </Link>
           </li>
         ))}
       </ul>

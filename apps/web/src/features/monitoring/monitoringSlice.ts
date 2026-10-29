@@ -143,6 +143,15 @@ const monitoringSlice = createSlice({
       }
     },
 
+    //~ A stopped monitoring deleted from the history: the phone forgets it too
+    liveForgotten: (state, { payload: id }: PayloadAction<string>) => {
+      if (state.live?.id !== id || state.live.stoppedAt === null) return;
+      state.live = null;
+      state.outbox = state.outbox.filter((request) =>
+        'monitoringId' in request ? request.monitoringId !== id : request.id !== id
+      );
+    },
+
     //~ Outcomes of useOutboxSync
     requestSent: (state, { payload: seq }: PayloadAction<number>) => {
       state.outbox = state.outbox.filter((request) => request.seq !== seq);
@@ -167,6 +176,7 @@ export const {
   intensityChosen,
   movementTapped,
   lastTapUndone,
+  liveForgotten,
   requestSent,
   requestRejected,
   syncPaused
