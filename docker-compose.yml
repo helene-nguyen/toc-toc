@@ -1,0 +1,22 @@
+#~ Development: the database only — the API and the web app run on the host
+# (pnpm dev). Production lives in docker-compose.prod.yml.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-toctoc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-toctoc}
+      POSTGRES_DB: ${POSTGRES_DB:-toctoc}
+    ports:
+      - ${POSTGRES_PORT:-5436}:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-toctoc}']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  db-data:

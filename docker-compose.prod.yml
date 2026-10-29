@@ -1,0 +1,64 @@
+#~ Production on the Raspberry Pi: the app (API + built web app in one
+# image), PostgreSQL, and a nightly backup of the database.
+# Start: docker compose -f docker-compose.prod.yml up -d
+services:
+  app:
+    image: ${APP_IMAGE:-ghcr.io/helene-nguyen/toc-toc:latest}
+    # no registry? `docker compose -f docker-compose.prod.yml build` builds it on the Pi
+    build: .
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-toctoc}
+      POSTGRES_USER: ${POSTGRES_USER:-toctoc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    # 127.0.0.1 only: the phone reaches the app through Tailscale (HTTPS),
+    # never straight from the LAN or the internet — see README
+    ports:
+      - 127.0.0.1:${APP_PORT:-4210}:4210
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-toctoc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-toctoc}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-toctoc}']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  #~ One compressed dump a day in ./backups, the last 14 kept
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-toctoc}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      PGDATABASE: ${POSTGRES_DB:-toctoc}
+    volumes:
+      - ./backups:/backups
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          pg_dump | gzip > /backups/toc-toc-$$(date +%F).sql.gz
+          find /backups -name 'toc-toc-*.sql.gz' -mtime +14 -delete
+          sleep 86400
+        done
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

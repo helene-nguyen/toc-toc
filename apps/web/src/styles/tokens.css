@@ -1,0 +1,55 @@
+/*~ Design tokens — from the Tocomètre prototype: monitoring paper (rose grid,
+   ink-blue trace), coral for contractions, teal for the baby's movements.
+   Typography: Bricolage Grotesque (display), Atkinson Hyperlegible (body,
+   readable when tired), JetBrains Mono (numbers). */
+
+:root {
+  color-scheme: light;
+  --bg: #edf0f4;
+  --surface: #ffffff;
+  --fg: #17202d;
+  --muted: #5b6677;
+  --line: #d5dbe3;
+  --paper: #fdfcfc;
+  --grid-minor: #f3d9da;
+  --grid-major: #e2a6aa;
+  --trace: #1c3c86;
+  --ink: #1d2f4e;
+  --ink-fg: #ffffff;
+  --contract: #cf4b42;
+  --contract-fg: #ffffff;
+  --contract-soft: rgba(207, 75, 66, 0.1);
+  --move: #0f7f73;
+  --move-soft: rgba(15, 127, 115, 0.14);
+  --ok: #217a53;
+  --warn: #a9561b;
+
+  --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0e131b;
+    --surface: #161d29;
+    --fg: #e5eaf1;
+    --muted: #92a0b4;
+    --line: #26303f;
+    --paper: #121924;
+    --grid-minor: #2c2530;
+    --grid-major: #573844;
+    --trace: #8eb2ff;
+    --ink: #c9d7f2;
+    --ink-fg: #0e131b;
+    --contract: #f27c70;
+    --contract-fg: #1a0e0d;
+    --contract-soft: rgba(242, 124, 112, 0.14);
+    --move: #4fd1c1;
+    --move-soft: rgba(79, 209, 193, 0.16);
+    --ok: #5cc795;
+    --warn: #f0a15e;
+  }
+}

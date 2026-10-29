@@ -1,0 +1,23 @@
+{
+  "name": "toc-toc",
+  "private": true,
+  "type": "module",
+  "description": "Toc-Toc — suivi des contractions et des mouvements du bébé, auto-hébergé",
+  "packageManager": "pnpm@9.15.3",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:api": "pnpm --filter @toc-toc/api dev",
+    "dev:web": "pnpm --filter @toc-toc/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "test": "pnpm -r test",
+    "test:integration": "pnpm -r test:integration"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.1",
+    "typescript": "^6.0.0",
+    "typescript-eslint": "^8.69.0"
+  }
+}
