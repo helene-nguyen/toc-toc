@@ -4,10 +4,13 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { useAppDispatch } from '../../../app/hooks';
-import { useDeleteMonitoringMutation, useSaveContractionMutation } from '../monitoringApi';
-import { intensityChanged, liveForgotten } from '../monitoringSlice';
+import { useSaveContractionMutation } from '../monitoringApi';
+import { intensityChanged } from '../monitoringSlice';
 import type { Intensity } from '../monitoringTypes';
 import { useMonitoring } from '../hooks/useMonitoring';
+import { useDeleteSession } from '../hooks/useDeleteSession';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
+import { TrashIcon } from '../components/TrashIcon';
 import { toTimeline } from '../domain/timeline';
 import { sessionSummary } from '../domain/stats';
 import type { ChartMode } from '../chart/drawChart';
@@ -22,12 +25,11 @@ export const SessionDetailPage = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { monitoring, isLoading, isError, isLocal } = useMonitoring(id);
-  const [deleteMonitoring, { isLoading: deleting }] = useDeleteMonitoringMutation();
+  const { remove: removeSession, deleting, failed: deleteError } = useDeleteSession();
   const [saveContraction] = useSaveContractionMutation();
   const [intensityError, setIntensityError] = useState(false);
   const [mode, setMode] = useState<ChartMode>('split');
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleteError, setDeleteError] = useState(false);
 
   const monitoringRef = useRef(monitoring);
   monitoringRef.current = monitoring;
@@ -50,14 +52,9 @@ export const SessionDetailPage = () => {
   const summary = sessionSummary(timeline);
 
   const remove = async () => {
-    try {
-      await deleteMonitoring(monitoring.id).unwrap();
-      dispatch(liveForgotten(monitoring.id));
-      navigate('/sessions', { replace: true });
-    } catch {
-      setDeleteError(true);
-      setConfirmDelete(false);
-    }
+    const deleted = await removeSession(monitoring.id);
+    setConfirmDelete(false);
+    if (deleted) navigate('/sessions', { replace: true });
   };
 
   //~ The session recorded on this phone goes through the outbox (works
@@ -108,22 +105,21 @@ export const SessionDetailPage = () => {
         <Link to={`/sessions/${monitoring.id}/print`} className="session__primary">
           Aperçu avant impression
         </Link>
-        {confirmDelete ? (
-          <span className="monitoring__confirm">
-            Supprimer cette session ?
-            <button type="button" className="monitoring__danger" disabled={deleting} onClick={remove}>
-              Oui, supprimer
-            </button>
-            <button type="button" className="monitoring__ghost" onClick={() => setConfirmDelete(false)}>
-              Non
-            </button>
-          </span>
-        ) : (
-          <button type="button" className="monitoring__danger" onClick={() => setConfirmDelete(true)}>
-            Supprimer
-          </button>
-        )}
+        <button type="button" className="monitoring__danger session__delete" onClick={() => setConfirmDelete(true)}>
+          <TrashIcon /> Supprimer
+        </button>
       </div>
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Supprimer cette session ?"
+          message={`Session du ${longDay(monitoring.startedAt).toLowerCase()} à ${clockAt(monitoring.startedAt)}. Son tracé et son journal seront supprimés définitivement.`}
+          confirmLabel="Supprimer"
+          danger
+          busy={deleting}
+          onConfirm={remove}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
       {deleteError && (
         <p className="monitoring__sync" data-error="true">
           La suppression n'a pas abouti : le serveur est injoignable. Réessayez une fois connecté.
