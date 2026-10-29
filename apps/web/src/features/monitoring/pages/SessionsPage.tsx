@@ -8,6 +8,7 @@ import type { MonitoringSummary } from '../monitoringTypes';
 import { useDeleteSession } from '../hooks/useDeleteSession';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { TrashIcon } from '../components/TrashIcon';
+import { PageIntro } from '../../../components/PageIntro';
 import '../monitoring.css';
 
 const dayFormat = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -35,7 +36,10 @@ export const SessionsPage = () => {
 
   return (
     <section className="sessions">
-      <h2 className="sessions__title">Mes sessions</h2>
+      <PageIntro title="Mes sessions">
+        Toutes vos sessions de monitoring, de la plus récente à la plus ancienne. Ouvrez-en une pour revoir son tracé et
+        son journal, l'imprimer ou la supprimer.
+      </PageIntro>
       {isLoading && <p className="sessions__empty">Chargement…</p>}
       {isError && <p className="sessions__empty">Impossible de joindre le serveur. Vérifiez la connexion au Raspberry Pi.</p>}
       {failed && (

@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import type { AppDispatch } from '../../../app/store';
 import { monitoringApi } from '../monitoringApi';
+import { practiceApi } from '../../practice/practiceApi';
 import { requestRejected, requestSent, syncPaused, type OutboxRequest } from '../monitoringSlice';
 
 const RETRY_MS = 15_000;
@@ -32,6 +33,10 @@ const call = (dispatch: AppDispatch, request: OutboxRequest) => {
       return dispatch(endpoints.recordMovement.initiate(request)).unwrap();
     case 'removeMovement':
       return dispatch(endpoints.removeMovement.initiate(request)).unwrap();
+    case 'savePractice':
+      return dispatch(practiceApi.endpoints.savePractice.initiate(request.contraction)).unwrap();
+    case 'removePractice':
+      return dispatch(practiceApi.endpoints.removePractice.initiate({ id: request.id })).unwrap();
   }
 };
 

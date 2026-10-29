@@ -59,14 +59,16 @@ const drawToco = (
   ctx.fillStyle = P.paper;
   ctx.fillRect(0, 0, w, h);
 
-  // contractions shaded from "start" to "end"
+  // contractions shaded from "start" to "end" — fainter for a painless one
   ctx.fillStyle = P['contract-soft'];
   for (const contraction of timeline.contractions) {
     const end = contraction.end ?? timeline.now;
     if (end < t0 || contraction.start > t1) continue;
     const x0 = Math.max(GUTTER, X(contraction.start));
+    ctx.globalAlpha = contraction.braxtonHicks ? 0.4 : 1;
     ctx.fillRect(x0, top, Math.min(w, X(end)) - x0, height);
   }
+  ctx.globalAlpha = 1;
 
   // time grid
   const grid = gridSteps(pps);

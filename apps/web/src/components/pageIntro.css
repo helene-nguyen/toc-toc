@@ -1,0 +1,23 @@
+.page-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.page-intro__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+}
+.page-intro__text {
+  margin: 0;
+  max-width: 65ch;
+  font-size: 14px;
+  color: var(--muted);
+}
+/* phone held sideways during a session: the trace needs the room */
+@media (orientation: landscape) and (max-height: 520px) {
+  .page-intro {
+    display: none;
+  }
+}

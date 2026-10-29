@@ -9,6 +9,8 @@ export interface Contraction {
   // null while the contraction goes on
   endedAt: string | null;
   intensity: Intensity;
+  // painless (Braxton-Hicks); missing on contractions recorded before it existed
+  braxtonHicks?: boolean;
 }
 
 export interface Movement {

@@ -3,12 +3,6 @@
   flex-direction: column;
   gap: 12px;
 }
-.sessions__title {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 22px;
-  margin: 0;
-}
 .sessions__empty {
   color: var(--muted);
 }
@@ -514,6 +508,10 @@
   font-family: var(--font-body);
   font-size: 14px;
 }
+.log__bar--painless {
+  width: 8px;
+  background: var(--muted);
+}
 .log__undo {
   align-self: flex-start;
   min-height: 44px;
@@ -652,6 +650,11 @@
   .tap-dock__buttons:has(.tap-dock__move) .tap-dock__hint {
     display: none;
   }
+}
+.tap-dock__chip--painless[aria-pressed='true'] {
+  border-color: var(--muted);
+  background: transparent;
+  color: var(--fg);
 }
 .tap-dock__count {
   font-family: var(--font-data);

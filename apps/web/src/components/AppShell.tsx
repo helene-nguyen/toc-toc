@@ -69,6 +69,7 @@ export const AppShell = () => {
         <NavLink to="/" end>
           Monitoring
         </NavLink>
+        <NavLink to="/preparation">Préparation</NavLink>
         <NavLink to="/sessions">Mes sessions</NavLink>
       </nav>
     </div>

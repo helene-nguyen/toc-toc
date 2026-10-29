@@ -2,15 +2,10 @@
 // the baby-movement button. The big button does one thing at a time —
 // start the monitoring, then mark each contraction's start and end — and
 // shows how long the current contraction has lasted. Once a contraction
-// ends, three chips ask how strong it felt.
-import type { Intensity } from '../monitoringTypes';
+// ends, chips ask how it felt: light, medium, strong — or painless
+// (Braxton-Hicks).
+import { FEELINGS, type Feeling } from '../feeling';
 import { minSec } from '../format';
-
-const INTENSITIES: { value: Intensity; label: string }[] = [
-  { value: 1, label: 'Légère' },
-  { value: 2, label: 'Moyenne' },
-  { value: 3, label: 'Forte' }
-];
 
 interface TapDockProps {
   running: boolean;
@@ -20,11 +15,11 @@ interface TapDockProps {
   // a movement was noted a moment ago: the button says so
   movementJustNoted: boolean;
   askIntensity: boolean;
-  lastIntensity: Intensity | null;
+  lastFeeling: Feeling | null;
   onStart: () => void;
   onContraction: () => void;
   onMovement: () => void;
-  onIntensity: (intensity: Intensity) => void;
+  onFeeling: (feeling: Feeling) => void;
 }
 
 export const TapDock = ({
@@ -33,11 +28,11 @@ export const TapDock = ({
   movementCount,
   movementJustNoted,
   askIntensity,
-  lastIntensity,
+  lastFeeling,
   onStart,
   onContraction,
   onMovement,
-  onIntensity
+  onFeeling
 }: TapDockProps) => {
   const contracting = ongoingFor !== null;
   const mode = !running ? 'start' : contracting ? 'contracting' : 'ready';
@@ -46,15 +41,15 @@ export const TapDock = ({
     <div className="tap-dock">
       <div className="tap-dock__inner">
         {askIntensity && running && !contracting && (
-          <div className="tap-dock__ask" role="group" aria-label="Intensité de la dernière contraction">
+          <div className="tap-dock__ask" role="group" aria-label="Ressenti de la dernière contraction">
             <span>Intensité ?</span>
-            {INTENSITIES.map(({ value, label }) => (
+            {FEELINGS.map(({ value, label }) => (
               <button
                 key={value}
                 type="button"
-                className="tap-dock__chip"
-                aria-pressed={lastIntensity === value}
-                onClick={() => onIntensity(value)}
+                className={`tap-dock__chip${value === 'painless' ? ' tap-dock__chip--painless' : ''}`}
+                aria-pressed={lastFeeling === value}
+                onClick={() => onFeeling(value)}
               >
                 {label}
               </button>

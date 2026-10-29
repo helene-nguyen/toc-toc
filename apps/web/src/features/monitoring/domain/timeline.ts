@@ -8,6 +8,8 @@ export interface TimelineContraction {
   // null while the contraction goes on
   end: number | null;
   intensity: Intensity;
+  // painless (Braxton-Hicks): drawn low, left out of the labour figures
+  braxtonHicks: boolean;
 }
 
 export interface Timeline {
@@ -27,10 +29,11 @@ export const toTimeline = (monitoring: Monitoring, now: Date): Timeline => {
     now: monitoring.stoppedAt ? seconds(monitoring.stoppedAt) : Math.max(0, (now.getTime() - origin) / 1000),
     running: monitoring.stoppedAt === null,
     contractions: monitoring.contractions
-      .map(({ startedAt, endedAt, intensity }) => ({
+      .map(({ startedAt, endedAt, intensity, braxtonHicks }) => ({
         start: seconds(startedAt),
         end: endedAt === null ? null : seconds(endedAt),
-        intensity
+        intensity,
+        braxtonHicks: braxtonHicks ?? false
       }))
       .sort((a, b) => a.start - b.start),
     movements: monitoring.movements.map(({ at }) => seconds(at)).sort((a, b) => a - b)

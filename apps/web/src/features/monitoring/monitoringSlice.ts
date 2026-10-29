@@ -4,7 +4,9 @@
 // Pi in order, whenever it is reachable. The state is saved in localStorage
 // (see app/store.ts): a reload or a flat battery loses nothing.
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Contraction, Intensity, Monitoring, Movement } from './monitoringTypes';
+import type { Contraction, Monitoring, Movement } from './monitoringTypes';
+import type { PracticeContraction } from '../practice/practiceTypes';
+import { withFeeling, type Feeling } from './feeling';
 
 //~ One request waiting to reach the API — `seq` identifies it in the queue
 export type OutboxRequest = { seq: number } & (
@@ -14,6 +16,8 @@ export type OutboxRequest = { seq: number } & (
   | { kind: 'removeContraction'; monitoringId: string; id: string }
   | { kind: 'recordMovement'; monitoringId: string; movement: Movement }
   | { kind: 'removeMovement'; monitoringId: string; id: string }
+  | { kind: 'savePractice'; contraction: PracticeContraction }
+  | { kind: 'removePractice'; id: string }
 );
 
 // a request before it gets its place in the queue
@@ -24,6 +28,8 @@ export interface MonitoringState {
   ownerId: number | null;
   // the monitoring running on this phone, or the last one once stopped
   live: Monitoring | null;
+  // a practice contraction (Préparation tab) being timed, outside any monitoring
+  practiceOngoing: PracticeContraction | null;
   outbox: OutboxRequest[];
   nextSeq: number;
   // why the server refused the last request, or that it can't be reached
@@ -33,6 +39,7 @@ export interface MonitoringState {
 export const initialMonitoringState: MonitoringState = {
   ownerId: null,
   live: null,
+  practiceOngoing: null,
   outbox: [],
   nextSeq: 1,
   syncError: null
@@ -60,6 +67,14 @@ const enqueueSave = (state: MonitoringState, monitoringId: string, contraction: 
     (request) => !(request.kind === 'saveContraction' && request.contraction.id === contraction.id)
   );
   enqueue(state, { kind: 'saveContraction', monitoringId, contraction: { ...contraction } });
+};
+
+// same idea for practice contractions: only the latest state needs sending
+const enqueuePractice = (state: MonitoringState, contraction: PracticeContraction) => {
+  state.outbox = state.outbox.filter(
+    (request) => !(request.kind === 'savePractice' && request.contraction.id === contraction.id)
+  );
+  enqueue(state, { kind: 'savePractice', contraction: { ...contraction } });
 };
 
 const isRunning = (live: Monitoring | null): live is Monitoring => live !== null && live.stoppedAt === null;
@@ -104,7 +119,7 @@ const monitoringSlice = createSlice({
           ongoing.endedAt = at < ongoing.startedAt ? ongoing.startedAt : at;
           enqueueSave(state, live.id, ongoing);
         } else {
-          const contraction: Contraction = { id, startedAt: at, endedAt: null, intensity: 2 };
+          const contraction: Contraction = { id, startedAt: at, endedAt: null, intensity: 2, braxtonHicks: false };
           live.contractions.push(contraction);
           enqueueSave(state, live.id, contraction);
         }
@@ -112,22 +127,22 @@ const monitoringSlice = createSlice({
       prepare: prepareTap
     },
 
-    //~ The felt intensity, asked once a contraction has ended
-    intensityChosen: (state, { payload }: PayloadAction<Intensity>) => {
+    //~ How it felt (intensity, or painless), asked once a contraction has ended
+    feelingChosen: (state, { payload }: PayloadAction<Feeling>) => {
       const live = state.live;
       const last = live?.contractions.at(-1);
       if (!live || !last) return;
-      last.intensity = payload;
+      Object.assign(last, withFeeling(last, payload));
       enqueueSave(state, live.id, last);
     },
 
-    //~ The intensity changed afterwards, from the journal — the session may
+    //~ The feeling changed afterwards, from the journal — the session may
     // be stopped already; the server accepts the change either way
-    intensityChanged: (state, { payload }: PayloadAction<{ contractionId: string; intensity: Intensity }>) => {
+    feelingChanged: (state, { payload }: PayloadAction<{ contractionId: string; feeling: Feeling }>) => {
       const live = state.live;
       const contraction = live?.contractions.find((candidate) => candidate.id === payload.contractionId);
-      if (!live || !contraction || contraction.intensity === payload.intensity) return;
-      contraction.intensity = payload.intensity;
+      if (!live || !contraction) return;
+      Object.assign(contraction, withFeeling(contraction, payload.feeling));
       enqueueSave(state, live.id, contraction);
     },
 
@@ -165,9 +180,12 @@ const monitoringSlice = createSlice({
     liveForgotten: (state, { payload: id }: PayloadAction<string>) => {
       if (state.live?.id !== id || state.live.stoppedAt === null) return;
       state.live = null;
-      state.outbox = state.outbox.filter((request) =>
-        'monitoringId' in request ? request.monitoringId !== id : request.id !== id
-      );
+      // only this monitoring's requests go; practice contractions stay
+      const ofThisMonitoring = (request: OutboxRequest) =>
+        'monitoringId' in request
+          ? request.monitoringId === id
+          : (request.kind === 'start' || request.kind === 'stop') && request.id === id;
+      state.outbox = state.outbox.filter((request) => !ofThisMonitoring(request));
     },
 
     //~ Who is signed in, once known. Data recorded before accounts existed
@@ -183,6 +201,31 @@ const monitoringSlice = createSlice({
 
     //~ Signing out leaves nothing of this account on the phone
     signedOut: () => initialMonitoringState,
+
+    //~ The Préparation button: starts a practice contraction, or ends the
+    // one going on — no monitoring needed
+    practiceTapped: {
+      reducer: (state, { payload: { id, at } }: PayloadAction<Tap>) => {
+        const ongoing = state.practiceOngoing;
+        if (ongoing) {
+          enqueuePractice(state, { ...ongoing, endedAt: at < ongoing.startedAt ? ongoing.startedAt : at });
+          state.practiceOngoing = null;
+        } else {
+          state.practiceOngoing = { id, startedAt: at, endedAt: null };
+          enqueuePractice(state, state.practiceOngoing);
+        }
+      },
+      prepare: prepareTap
+    },
+
+    //~ A practice contraction recorded by mistake
+    practiceRemoved: (state, { payload: id }: PayloadAction<string>) => {
+      if (state.practiceOngoing?.id === id) state.practiceOngoing = null;
+      state.outbox = state.outbox.filter(
+        (request) => !(request.kind === 'savePractice' && request.contraction.id === id)
+      );
+      enqueue(state, { kind: 'removePractice', id });
+    },
 
     //~ Outcomes of useOutboxSync
     requestSent: (state, { payload: seq }: PayloadAction<number>) => {
@@ -208,11 +251,13 @@ export const {
   monitoringStarted,
   monitoringStopped,
   contractionTapped,
-  intensityChosen,
-  intensityChanged,
+  feelingChosen,
+  feelingChanged,
   movementTapped,
   lastTapUndone,
   liveForgotten,
+  practiceTapped,
+  practiceRemoved,
   requestSent,
   requestRejected,
   syncPaused

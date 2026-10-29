@@ -5,8 +5,8 @@ import { useCallback, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { useAppDispatch } from '../../../app/hooks';
 import { useSaveContractionMutation } from '../monitoringApi';
-import { intensityChanged } from '../monitoringSlice';
-import type { Intensity } from '../monitoringTypes';
+import { feelingChanged } from '../monitoringSlice';
+import { withFeeling, type Feeling } from '../feeling';
 import { useMonitoring } from '../hooks/useMonitoring';
 import { useDeleteSession } from '../hooks/useDeleteSession';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -59,15 +59,15 @@ export const SessionDetailPage = () => {
 
   //~ The session recorded on this phone goes through the outbox (works
   // offline); an older one is saved straight to the API
-  const changeIntensity = async (contractionId: string, intensity: Intensity) => {
+  const changeFeeling = async (contractionId: string, feeling: Feeling) => {
     if (isLocal) {
-      dispatch(intensityChanged({ contractionId, intensity }));
+      dispatch(feelingChanged({ contractionId, feeling }));
       return;
     }
     const contraction = monitoring.contractions.find((candidate) => candidate.id === contractionId);
     if (!contraction) return;
     try {
-      await saveContraction({ monitoringId: monitoring.id, contraction: { ...contraction, intensity } }).unwrap();
+      await saveContraction({ monitoringId: monitoring.id, contraction: withFeeling(contraction, feeling) }).unwrap();
       setIntensityError(false);
     } catch {
       setIntensityError(true);
@@ -128,7 +128,11 @@ export const SessionDetailPage = () => {
 
       <div className="rhythm__tiles">
         <StatTile label="Durée" value={span(summary.duration)} />
-        <StatTile label="Contractions" value={summary.contractionCount} />
+        <StatTile
+          label="Contractions"
+          value={summary.contractionCount}
+          unit={summary.braxtonHicksCount ? `+ ${summary.braxtonHicksCount} sans douleur` : undefined}
+        />
         <StatTile
           label="Intervalle moyen"
           value={summary.averageInterval === null ? null : minSec(summary.averageInterval)}
@@ -152,7 +156,7 @@ export const SessionDetailPage = () => {
           L'intensité n'a pas pu être enregistrée : le serveur est injoignable. Réessayez une fois connecté.
         </p>
       )}
-      <ContractionLog monitoring={monitoring} timeline={timeline} onIntensityChange={changeIntensity} />
+      <ContractionLog monitoring={monitoring} timeline={timeline} onFeelingChange={changeFeeling} />
     </div>
   );
 };

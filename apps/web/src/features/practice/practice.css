@@ -1,0 +1,104 @@
+/*~ Préparation tab — the dock, tiles and cards come from monitoring.css */
+.practice__week h3,
+.practice__day-block h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.practice__bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  height: 120px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.practice__bars li {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.practice__bar {
+  width: 100%;
+  max-width: 36px;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--contract);
+  opacity: 0.55;
+}
+.practice__count {
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 600;
+}
+.practice__day {
+  font-size: 12px;
+  color: var(--muted);
+}
+.practice__history {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.practice__day-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.practice__day-block ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.practice__row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 0 0 14px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+}
+.practice__row:last-child {
+  border-bottom: 0;
+}
+.practice__time {
+  font-weight: 600;
+}
+.practice__gap {
+  color: var(--muted);
+}
+.practice__badge {
+  margin-right: 12px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--muted);
+}
+.practice__delete {
+  width: 48px;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.practice__delete:hover {
+  color: var(--contract);
+  background: var(--contract-soft);
+}

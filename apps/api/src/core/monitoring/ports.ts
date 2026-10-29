@@ -15,6 +15,8 @@ export interface Contraction {
   // null while the contraction goes on
   endedAt: Date | null;
   intensity: Intensity;
+  // a painless one (Braxton-Hicks): drawn low, left out of the labour figures
+  braxtonHicks: boolean;
 }
 
 export interface Movement {

@@ -19,7 +19,7 @@ describe('monitoring history', () => {
       id: ids.contraction,
       startedAt: at(5),
       endedAt: at(6),
-      intensity: 1
+      intensity: 1, braxtonHicks: false
     });
     await monitorings.saveMovement(ids.monitoring, { id: ids.movement, at: at(7) });
   });

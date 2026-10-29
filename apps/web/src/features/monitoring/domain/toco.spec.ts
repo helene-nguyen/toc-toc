@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FALL, REST, baseline, contractionLevel, tocoValue } from './toco';
+import { BRAXTON_HICKS_TOP, FALL, REST, baseline, contractionLevel, tocoValue } from './toco';
 import type { Timeline } from './timeline';
 
 const timeline = (overrides: Partial<Timeline> = {}): Timeline => ({
   now: 600,
   running: true,
-  contractions: [{ start: 100, end: 160, intensity: 2 }],
+  contractions: [{ start: 100, end: 160, intensity: 2, braxtonHicks: false }],
   movements: [],
   ...overrides
 });
@@ -40,15 +40,15 @@ describe('tocoValue', () => {
   });
 
   it('draws the same curve whatever the felt intensity', () => {
-    const light = timeline({ contractions: [{ start: 100, end: 160, intensity: 1 }] });
-    const strong = timeline({ contractions: [{ start: 100, end: 160, intensity: 3 }] });
+    const light = timeline({ contractions: [{ start: 100, end: 160, intensity: 1, braxtonHicks: false }] });
+    const strong = timeline({ contractions: [{ start: 100, end: 160, intensity: 3, braxtonHicks: false }] });
 
     for (const t of [105, 120, 150, 165]) expect(tocoValue(light, t)).toBe(tocoValue(strong, t));
   });
 
   it(`comes down progressively over ${FALL} s from the level reached`, () => {
     // a 20 s contraction stops around 72 mmHg, short of the 80 of a longer one
-    const short = timeline({ contractions: [{ start: 100, end: 120, intensity: 2 }] });
+    const short = timeline({ contractions: [{ start: 100, end: 120, intensity: 2, braxtonHicks: false }] });
     const atEnd = tocoValue(short, 120) - baseline(120);
     const halfway = tocoValue(short, 120 + FALL / 2) - baseline(120 + FALL / 2);
 
@@ -59,14 +59,25 @@ describe('tocoValue', () => {
   });
 
   it('keeps climbing for a contraction still going on, and draws nothing after now', () => {
-    const live = timeline({ now: 130, contractions: [{ start: 100, end: null, intensity: 2 }] });
+    const live = timeline({ now: 130, contractions: [{ start: 100, end: null, intensity: 2, braxtonHicks: false }] });
 
     expect(tocoValue(live, 125) - baseline(125)).toBeGreaterThan(60);
     expect(tocoValue(live, 200)).toBeCloseTo(baseline(200));
   });
 
+  it('keeps a painless (Braxton-Hicks) contraction low: 30 mmHg at most, same timing', () => {
+    const painless = timeline({ contractions: [{ start: 100, end: 200, intensity: 3, braxtonHicks: true }] });
+    const above = (t: number) => tocoValue(painless, t) - baseline(t);
+
+    expect(above(110)).toBeGreaterThan(0);
+    expect(above(110)).toBeLessThan(above(170));
+    expect(above(170) + REST).toBeLessThanOrEqual(BRAXTON_HICKS_TOP + 1);
+    expect(above(170) + REST).toBeGreaterThan(BRAXTON_HICKS_TOP - 2);
+    expect(tocoValue(painless, 200 + FALL + 1)).toBeCloseTo(baseline(200 + FALL + 1));
+  });
+
   it('stays between 0 and 100 mmHg', () => {
-    const long = timeline({ contractions: [{ start: 0, end: 150, intensity: 3 }] });
+    const long = timeline({ contractions: [{ start: 0, end: 150, intensity: 3, braxtonHicks: false }] });
 
     for (let t = 0; t < 200; t += 5) {
       expect(tocoValue(long, t)).toBeGreaterThanOrEqual(0);

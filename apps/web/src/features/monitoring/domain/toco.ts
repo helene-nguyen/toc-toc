@@ -6,12 +6,15 @@
 //   minute — a smooth curve through them, never overshooting
 // - after "end", it comes down progressively for FALL seconds, from the
 //   level it had reached
+// - a painless (Braxton-Hicks) contraction has the same timing, scaled down
+//   to peak at BRAXTON_HICKS_TOP
 // The felt intensity is recorded but plays no part: only the taps shape the
 // curve. Nothing is redrawn afterwards — the live trace and the saved one match.
 import type { Timeline } from './timeline';
 
 export const REST = 10;
 export const FALL = 20;
+export const BRAXTON_HICKS_TOP = 30;
 // [seconds after "start", mmHg]
 export const LANDMARKS: [number, number][] = [
   [0, REST],
@@ -55,6 +58,9 @@ export const contractionLevel = (elapsed: number): number => {
   return y - REST;
 };
 
+// the full climb (rest → 100) brought down to rest → BRAXTON_HICKS_TOP
+const BRAXTON_HICKS_SCALE = (BRAXTON_HICKS_TOP - REST) / (LANDMARKS[LANDMARKS.length - 1][1] - REST);
+
 // 0 → 1, flat at both ends
 const smooth = (x: number): number => {
   const clamped = Math.max(0, Math.min(1, x));
@@ -75,7 +81,8 @@ export const tocoValue = (timeline: Timeline, t: number): number => {
     if (elapsed < 0 || elapsed > duration + FALL) continue;
 
     const fall = elapsed <= duration ? 1 : 1 - smooth((elapsed - duration) / FALL);
-    value += contractionLevel(Math.min(elapsed, duration)) * fall * (1 + 0.02 * Math.sin(t * 1.7));
+    const scale = contraction.braxtonHicks ? BRAXTON_HICKS_SCALE : 1;
+    value += contractionLevel(Math.min(elapsed, duration)) * scale * fall * (1 + 0.02 * Math.sin(t * 1.7));
   }
 
   return Math.max(0, Math.min(100, value));

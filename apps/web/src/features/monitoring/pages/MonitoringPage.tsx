@@ -7,14 +7,14 @@ import { Link } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import {
   contractionTapped,
-  intensityChanged,
-  intensityChosen,
+  feelingChanged,
+  feelingChosen,
   lastTapUndone,
   monitoringStarted,
   monitoringStopped,
   movementTapped
 } from '../monitoringSlice';
-import type { Intensity } from '../monitoringTypes';
+import { feelingOf, type Feeling } from '../feeling';
 import { toTimeline } from '../domain/timeline';
 import type { ChartMode } from '../chart/drawChart';
 import { TocoChart } from '../components/TocoChart';
@@ -24,6 +24,7 @@ import { ContractionLog } from '../components/ContractionLog';
 import { useNow } from '../hooks/useNow';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { clockAt, hourMinSec } from '../format';
+import { PageIntro } from '../../../components/PageIntro';
 import '../monitoring.css';
 
 const SYNC_MESSAGES: Record<string, string> = {
@@ -75,8 +76,8 @@ export const MonitoringPage = () => {
     setMovementNotedAt(Date.now());
     vibrate(15);
   }, [dispatch]);
-  const chooseIntensity = (intensity: Intensity) => {
-    dispatch(intensityChosen(intensity));
+  const chooseFeeling = (feeling: Feeling) => {
+    dispatch(feelingChosen(feeling));
     setAskIntensity(false);
   };
   const stop = () => {
@@ -101,6 +102,10 @@ export const MonitoringPage = () => {
 
   return (
     <div className="monitoring">
+      <PageIntro title="Monitoring">
+        Suivez vos contractions en direct pendant une session : appuyez au début et à la fin de chaque contraction, et
+        quand le bébé bouge. Le tracé se dessine comme sur un monitoring de maternité.
+      </PageIntro>
       <div className="monitoring__status">
         <span className="monitoring__state" data-running={running}>
           {running
@@ -188,9 +193,7 @@ export const MonitoringPage = () => {
                 dispatch(lastTapUndone());
                 setAskIntensity(false);
               }}
-              onIntensityChange={(contractionId, intensity) =>
-                dispatch(intensityChanged({ contractionId, intensity }))
-              }
+              onFeelingChange={(contractionId, feeling) => dispatch(feelingChanged({ contractionId, feeling }))}
             />
           </div>
         </>
@@ -216,11 +219,11 @@ export const MonitoringPage = () => {
         movementCount={live?.movements.length ?? 0}
         movementJustNoted={now - movementNotedAt < 1400}
         askIntensity={askIntensity}
-        lastIntensity={lastContraction?.intensity ?? null}
+        lastFeeling={lastContraction ? feelingOf(lastContraction) : null}
         onStart={start}
         onContraction={tapContraction}
         onMovement={tapMovement}
-        onIntensity={chooseIntensity}
+        onFeeling={chooseFeeling}
       />
     </div>
   );

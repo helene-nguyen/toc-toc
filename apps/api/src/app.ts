@@ -12,6 +12,7 @@ import { sessionRoutes } from './adapters/http/authentication/sessionRoutes.js';
 import { signUpRoute } from './adapters/http/authentication/signUpRoute.js';
 import { setupGoogleOAuth, type GoogleOAuthConfig } from './adapters/http/authentication/googleOAuth.js';
 import { monitoringRoutes, type MonitoringUseCases } from './adapters/http/monitoring/monitoringRoutes.js';
+import { practiceRoutes, type PracticeUseCases } from './adapters/http/practice/practiceRoutes.js';
 
 export interface AppDependencies {
   createUserAccount: CreateUserAccount;
@@ -19,6 +20,7 @@ export interface AppDependencies {
   signInWithProvider: SignInWithProvider;
   getUser: GetUser;
   monitoring: MonitoringUseCases;
+  practice: PracticeUseCases;
   // optional: without credentials "Sign in with Google" simply doesn't exist
   googleOAuth?: GoogleOAuthConfig;
   jwtSecret: string;
@@ -37,6 +39,7 @@ export const buildApp = ({
   signInWithProvider,
   getUser,
   monitoring,
+  practice,
   googleOAuth,
   jwtSecret,
   webDir,
@@ -66,6 +69,7 @@ export const buildApp = ({
   app.register(signUpRoute(createUserAccount));
   app.register(sessionRoutes({ authenticateUser, getUser, googleEnabled: googleOAuth !== undefined }));
   app.register(monitoringRoutes(monitoring));
+  app.register(practiceRoutes(practice));
 
   app.get('/health', async () => {
     let db = 'not configured';

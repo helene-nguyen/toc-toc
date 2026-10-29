@@ -1,13 +1,11 @@
 //~ The journal: one row per contraction, newest on top, with clock times —
-// the figures a midwife asks for on the phone. The felt intensity can be
-// changed on any row, during the session or afterwards; it doesn't move
-// the trace.
-import type { Intensity, Monitoring } from '../monitoringTypes';
+// the figures a midwife asks for on the phone. How each one felt can be
+// changed on any row, during the session or afterwards: the intensity
+// doesn't move the trace, "painless" (Braxton-Hicks) draws it low.
+import type { Monitoring } from '../monitoringTypes';
 import type { Timeline } from '../domain/timeline';
+import { FEELINGS, feelingLabel, feelingOf, parseFeeling, type Feeling } from '../feeling';
 import { clockAt, minSec } from '../format';
-
-const INTENSITY_LABEL: Record<Intensity, string> = { 1: 'Légère', 2: 'Moyenne', 3: 'Forte' };
-const INTENSITIES: Intensity[] = [1, 2, 3];
 
 interface ContractionLogProps {
   monitoring: Monitoring;
@@ -15,8 +13,8 @@ interface ContractionLogProps {
   // undo only makes sense while the monitoring runs
   canUndo?: boolean;
   onUndo?: () => void;
-  // without it, the intensity is shown read-only
-  onIntensityChange?: (contractionId: string, intensity: Intensity) => void;
+  // without it, the feeling is shown read-only
+  onFeelingChange?: (contractionId: string, feeling: Feeling) => void;
 }
 
 export const ContractionLog = ({
@@ -24,7 +22,7 @@ export const ContractionLog = ({
   timeline,
   canUndo = false,
   onUndo,
-  onIntensityChange
+  onFeelingChange
 }: ContractionLogProps) => {
   // the timeline lists contractions by start, like this sorted copy: same index, same contraction
   const byStart = [...monitoring.contractions].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
@@ -71,22 +69,26 @@ export const ContractionLog = ({
                 )}
                 <td>{interval === null ? '–' : minSec(interval)}</td>
                 <td>
-                  <span className="log__bar" style={{ width: contraction.intensity * 12 }} />{' '}
-                  {onIntensityChange ? (
+                  {contraction.braxtonHicks ? (
+                    <span className="log__bar log__bar--painless" />
+                  ) : (
+                    <span className="log__bar" style={{ width: contraction.intensity * 12 }} />
+                  )}{' '}
+                  {onFeelingChange ? (
                     <select
                       className="log__intensity"
-                      value={contraction.intensity}
-                      aria-label={`Intensité de la contraction ${number}`}
-                      onChange={(event) => onIntensityChange(id, Number(event.target.value) as Intensity)}
+                      value={feelingOf(contraction)}
+                      aria-label={`Ressenti de la contraction ${number}`}
+                      onChange={(event) => onFeelingChange(id, parseFeeling(event.target.value))}
                     >
-                      {INTENSITIES.map((intensity) => (
-                        <option key={intensity} value={intensity}>
-                          {INTENSITY_LABEL[intensity]}
+                      {FEELINGS.map(({ value, short }) => (
+                        <option key={value} value={value}>
+                          {short}
                         </option>
                       ))}
                     </select>
                   ) : (
-                    INTENSITY_LABEL[contraction.intensity]
+                    feelingLabel(contraction)
                   )}
                 </td>
               </tr>

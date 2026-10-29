@@ -79,7 +79,9 @@ interface StopBody {
   stoppedAt: string;
 }
 
-//~ The whole contraction, every time (endedAt null = still going on)
+//~ The whole contraction, every time (endedAt null = still going on).
+// braxtonHicks may be missing: phones still running an older app version
+// don't send it, and their contractions are labour ones
 const contractionBodySchema = {
   type: 'object',
   required: ['startedAt', 'endedAt', 'intensity'],
@@ -87,7 +89,8 @@ const contractionBodySchema = {
   properties: {
     startedAt: dateTime,
     endedAt: { type: ['string', 'null'], format: 'date-time' },
-    intensity: { type: 'integer', enum: [1, 2, 3] }
+    intensity: { type: 'integer', enum: [1, 2, 3] },
+    braxtonHicks: { type: 'boolean' }
   }
 };
 
@@ -95,6 +98,7 @@ interface ContractionBody {
   startedAt: string;
   endedAt: string | null;
   intensity: Intensity;
+  braxtonHicks?: boolean;
 }
 
 const movementBodySchema = {
@@ -193,12 +197,13 @@ export const monitoringRoutes =
       '/api/v1/monitorings/:id/contractions/:eventId',
       { preHandler: [app.authenticate], schema: { params: eventParamsSchema, body: contractionBodySchema } },
       async (request, reply) => {
-        const { startedAt, endedAt, intensity } = request.body;
+        const { startedAt, endedAt, intensity, braxtonHicks = false } = request.body;
         const result = await saveContraction.handle(request.params.id, request.user.sub, {
           id: request.params.eventId,
           startedAt: new Date(startedAt),
           endedAt: endedAt === null ? null : new Date(endedAt),
-          intensity
+          intensity,
+          braxtonHicks
         });
 
         if (!result.ok) {

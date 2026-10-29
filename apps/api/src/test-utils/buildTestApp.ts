@@ -14,11 +14,15 @@ import { SaveContraction } from '../core/monitoring/saveContraction.js';
 import { RemoveContraction } from '../core/monitoring/removeContraction.js';
 import { RecordMovement } from '../core/monitoring/recordMovement.js';
 import { RemoveMovement } from '../core/monitoring/removeMovement.js';
+import { SavePracticeContraction } from '../core/practice/savePracticeContraction.js';
+import { RemovePracticeContraction } from '../core/practice/removePracticeContraction.js';
+import { ListPracticeHistory } from '../core/practice/listPracticeHistory.js';
 import {
   FakeClock,
   FakePasswordHasher,
   InMemoryAuthProviderRepository,
   InMemoryMonitoringRepository,
+  InMemoryPracticeContractionRepository,
   InMemoryUserAccountRepository,
   at
 } from './fakes.js';
@@ -40,6 +44,7 @@ interface TestAppOptions {
 export const buildTestApp = ({ webDir, allowedEmails, googleProfile = fakeGoogleProfile }: TestAppOptions = {}) => {
   const clock = new FakeClock(at(60));
   const monitorings = new InMemoryMonitoringRepository();
+  const practice = new InMemoryPracticeContractionRepository(monitorings);
   const users = new InMemoryUserAccountRepository();
   const authProviders = new InMemoryAuthProviderRepository(users);
   const hasher = new FakePasswordHasher();
@@ -61,6 +66,11 @@ export const buildTestApp = ({ webDir, allowedEmails, googleProfile = fakeGoogle
       recordMovement: new RecordMovement(monitorings, clock),
       removeMovement: new RemoveMovement(monitorings)
     },
+    practice: {
+      savePracticeContraction: new SavePracticeContraction(practice, clock),
+      removePracticeContraction: new RemovePracticeContraction(practice),
+      listPracticeHistory: new ListPracticeHistory(practice)
+    },
     googleOAuth: {
       clientId: 'test-google-client-id',
       clientSecret: 'test-google-client-secret',
@@ -75,7 +85,7 @@ export const buildTestApp = ({ webDir, allowedEmails, googleProfile = fakeGoogle
     webDir
   });
 
-  return { app, clock, monitorings, users, authProviders };
+  return { app, clock, monitorings, practice, users, authProviders };
 };
 
 //~ Sign up through the real route and keep the session cookies

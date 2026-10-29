@@ -1,7 +1,11 @@
 //~ The numbers shown beside the trace, all from the timeline.
 // "Recent" means the last few contractions: the rhythm that matters is the
-// one of the moment, not the average of the whole night.
-import type { Timeline } from './timeline';
+// one of the moment, not the average of the whole night. Painless
+// (Braxton-Hicks) contractions are not labour: they stay out of every figure.
+import type { Timeline, TimelineContraction } from './timeline';
+
+const labourOnly = (contractions: TimelineContraction[]) =>
+  contractions.filter((contraction) => !contraction.braxtonHicks);
 
 const mean = (values: number[]): number | null =>
   values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
@@ -23,7 +27,8 @@ export interface Rhythm {
   sinceLastMovement: number | null;
 }
 
-export const rhythm = ({ now, contractions, movements }: Timeline): Rhythm => {
+export const rhythm = ({ now, contractions: all, movements }: Timeline): Rhythm => {
+  const contractions = labourOnly(all);
   const finished = contractions.filter((contraction) => contraction.end !== null);
   const last = contractions.at(-1);
   const lastMovement = movements.at(-1);
@@ -47,8 +52,8 @@ export interface FiveOneOne {
   met: boolean;
 }
 
-export const fiveOneOne = ({ now, contractions }: Timeline): FiveOneOne => {
-  const lastHour = contractions.filter((contraction) => contraction.start >= now - 3600);
+export const fiveOneOne = ({ now, contractions: all }: Timeline): FiveOneOne => {
+  const lastHour = labourOnly(all).filter((contraction) => contraction.start >= now - 3600);
   const interval = mean(intervals(lastHour.map((contraction) => contraction.start)));
   const duration = mean(
     lastHour.filter((contraction) => contraction.end !== null).map((contraction) => contraction.end! - contraction.start)
@@ -63,7 +68,9 @@ export const fiveOneOne = ({ now, contractions }: Timeline): FiveOneOne => {
 export interface SessionSummary {
   // seconds
   duration: number;
+  // labour contractions only
   contractionCount: number;
+  braxtonHicksCount: number;
   // seconds, start to start, over the whole session
   averageInterval: number | null;
   // seconds, finished contractions only
@@ -72,13 +79,19 @@ export interface SessionSummary {
   movementsPerHour: number | null;
 }
 
-export const sessionSummary = ({ now, contractions, movements }: Timeline): SessionSummary => ({
-  duration: now,
-  contractionCount: contractions.length,
-  averageInterval: mean(intervals(contractions.map((contraction) => contraction.start))),
-  averageDuration: mean(
-    contractions.filter((contraction) => contraction.end !== null).map((contraction) => contraction.end! - contraction.start)
-  ),
-  movementCount: movements.length,
-  movementsPerHour: now > 0 ? movements.length / (now / 3600) : null
-});
+export const sessionSummary = ({ now, contractions: all, movements }: Timeline): SessionSummary => {
+  const contractions = labourOnly(all);
+  return {
+    duration: now,
+    contractionCount: contractions.length,
+    braxtonHicksCount: all.length - contractions.length,
+    averageInterval: mean(intervals(contractions.map((contraction) => contraction.start))),
+    averageDuration: mean(
+      contractions
+        .filter((contraction) => contraction.end !== null)
+        .map((contraction) => contraction.end! - contraction.start)
+    ),
+    movementCount: movements.length,
+    movementsPerHour: now > 0 ? movements.length / (now / 3600) : null
+  };
+};

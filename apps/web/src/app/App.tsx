@@ -7,6 +7,7 @@ import { MonitoringPage } from '../features/monitoring/pages/MonitoringPage';
 import { SessionsPage } from '../features/monitoring/pages/SessionsPage';
 import { SessionDetailPage } from '../features/monitoring/pages/SessionDetailPage';
 import { PrintPreviewPage } from '../features/monitoring/pages/PrintPreviewPage';
+import { PracticePage } from '../features/practice/pages/PracticePage';
 
 export const App = () => (
   <Routes>
@@ -21,6 +22,7 @@ export const App = () => (
       }
     >
       <Route path="/" element={<MonitoringPage />} />
+      <Route path="/preparation" element={<PracticePage />} />
       <Route path="/sessions" element={<SessionsPage />} />
       <Route path="/sessions/:id" element={<SessionDetailPage />} />
       <Route path="/sessions/:id/print" element={<PrintPreviewPage />} />

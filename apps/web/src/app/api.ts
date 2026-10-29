@@ -37,9 +37,11 @@ export const api = createApi({
   baseQuery: baseQueryWithRefresh,
   // 'Session' tag: sign-in/out invalidate it, so `me` refetches and every
   // component depending on who is signed in updates by itself.
-  // 'Monitorings' covers the history list, 'Monitoring' one session —
-  // mutations invalidate them and RTK Query refetches whatever is on screen.
-  tagTypes: ['Session', 'Monitorings', 'Monitoring'],
+  // 'Monitorings' covers the history list, 'Monitoring' one session,
+  // 'Practice' the practice contractions (which include the painless ones
+  // of sessions) — mutations invalidate them and RTK Query refetches
+  // whatever is on screen.
+  tagTypes: ['Session', 'Monitorings', 'Monitoring', 'Practice'],
   // the base slice declares no endpoint itself
   endpoints: () => ({})
 });

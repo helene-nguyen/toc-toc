@@ -17,7 +17,11 @@ import { SaveContraction } from './core/monitoring/saveContraction.js';
 import { RemoveContraction } from './core/monitoring/removeContraction.js';
 import { RecordMovement } from './core/monitoring/recordMovement.js';
 import { RemoveMovement } from './core/monitoring/removeMovement.js';
+import { SavePracticeContraction } from './core/practice/savePracticeContraction.js';
+import { RemovePracticeContraction } from './core/practice/removePracticeContraction.js';
+import { ListPracticeHistory } from './core/practice/listPracticeHistory.js';
 import { PostgresMonitoringRepository } from './adapters/postgres/monitoringRepository.js';
+import { PostgresPracticeContractionRepository } from './adapters/postgres/practiceContractionRepository.js';
 import { PostgresUserAccountRepository } from './adapters/postgres/userAccountRepository.js';
 import { PostgresAuthProviderRepository } from './adapters/postgres/authProviderRepository.js';
 import { ScryptPasswordHasher } from './adapters/security/scryptPasswordHasher.js';
@@ -54,6 +58,7 @@ const clock = new SystemClock();
 const monitorings = new PostgresMonitoringRepository(pool);
 const users = new PostgresUserAccountRepository(pool);
 const hasher = new ScryptPasswordHasher();
+const practice = new PostgresPracticeContractionRepository(pool);
 
 const app = buildApp({
   createUserAccount: new CreateUserAccount(users, hasher, monitorings, allowlist),
@@ -70,6 +75,11 @@ const app = buildApp({
     removeContraction: new RemoveContraction(monitorings),
     recordMovement: new RecordMovement(monitorings, clock),
     removeMovement: new RemoveMovement(monitorings)
+  },
+  practice: {
+    savePracticeContraction: new SavePracticeContraction(practice, clock),
+    removePracticeContraction: new RemovePracticeContraction(practice),
+    listPracticeHistory: new ListPracticeHistory(practice)
   },
   googleOAuth:
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET

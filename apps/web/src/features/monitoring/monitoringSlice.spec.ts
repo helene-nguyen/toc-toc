@@ -3,14 +3,16 @@ import {
   accountChanged,
   contractionTapped,
   initialMonitoringState,
-  intensityChosen,
-  intensityChanged,
+  feelingChosen,
+  feelingChanged,
   lastTapUndone,
   liveForgotten,
   monitoringReducer,
   monitoringStarted,
   monitoringStopped,
   movementTapped,
+  practiceRemoved,
+  practiceTapped,
   requestRejected,
   requestSent,
   type MonitoringState
@@ -39,7 +41,9 @@ describe('monitoringSlice', () => {
       contractionTapped({ id: 'ignored', at: at(6) })
     );
 
-    expect(state.live?.contractions).toEqual([{ id: 'c1', startedAt: at(5), endedAt: at(6), intensity: 2 }]);
+    expect(state.live?.contractions).toEqual([
+      { id: 'c1', startedAt: at(5), endedAt: at(6), intensity: 2, braxtonHicks: false }
+    ]);
     expect(kinds(state)).toEqual(['start', 'saveContraction']);
   });
 
@@ -48,7 +52,7 @@ describe('monitoringSlice', () => {
       monitoringStarted({ id: 'm1', at: at(0) }),
       contractionTapped({ id: 'c1', at: at(5) }),
       contractionTapped({ id: 'x', at: at(6) }),
-      intensityChosen(3)
+      feelingChosen(3)
     );
 
     expect(state.live?.contractions[0].intensity).toBe(3);
@@ -63,11 +67,26 @@ describe('monitoringSlice', () => {
       contractionTapped({ id: 'c2', at: at(10) }),
       contractionTapped({ id: 'x', at: at(11) }),
       monitoringStopped({ id: 'x', at: at(20) }),
-      intensityChanged({ contractionId: 'c1', intensity: 1 })
+      feelingChanged({ contractionId: 'c1', feeling: 1 })
     );
 
     expect(state.live?.contractions.map((contraction) => contraction.intensity)).toEqual([1, 2]);
     expect(state.outbox.at(-1)).toMatchObject({ kind: 'saveContraction', contraction: { id: 'c1', intensity: 1 } });
+  });
+
+  it('marks a contraction painless (Braxton-Hicks), keeping its intensity in case it changes back', () => {
+    const marked = play(
+      monitoringStarted({ id: 'm1', at: at(0) }),
+      contractionTapped({ id: 'c1', at: at(5) }),
+      contractionTapped({ id: 'x', at: at(6) }),
+      feelingChosen(3),
+      feelingChosen('painless')
+    );
+    const back = monitoringReducer(marked, feelingChanged({ contractionId: 'c1', feeling: 2 }));
+
+    expect(marked.live?.contractions[0]).toMatchObject({ intensity: 3, braxtonHicks: true });
+    expect(marked.outbox.at(-1)).toMatchObject({ contraction: { id: 'c1', braxtonHicks: true } });
+    expect(back.live?.contractions[0]).toMatchObject({ intensity: 2, braxtonHicks: false });
   });
 
   it('records movements', () => {
@@ -132,6 +151,25 @@ describe('monitoringSlice', () => {
     expect(kinds(sent)).toEqual(['recordMovement']);
     expect(rejected.outbox).toEqual([]);
     expect(rejected.syncError).toBe('IN_THE_FUTURE');
+  });
+
+  it('times a practice contraction without any monitoring, sending only its latest state', () => {
+    const started = play(practiceTapped({ id: 'p1', at: at(0) }));
+    const ended = monitoringReducer(started, practiceTapped({ id: 'ignored', at: at(0.5) }));
+
+    expect(started.practiceOngoing).toEqual({ id: 'p1', startedAt: at(0), endedAt: null });
+    expect(started.live).toBeNull();
+    expect(ended.practiceOngoing).toBeNull();
+    expect(ended.outbox).toEqual([
+      { seq: 2, kind: 'savePractice', contraction: { id: 'p1', startedAt: at(0), endedAt: at(0.5) } }
+    ]);
+  });
+
+  it('removes a practice contraction recorded by mistake, even one going on', () => {
+    const state = play(practiceTapped({ id: 'p1', at: at(0) }), practiceRemoved('p1'));
+
+    expect(state.practiceOngoing).toBeNull();
+    expect(kinds(state)).toEqual(['removePractice']);
   });
 
   it('keeps data recorded before sign-in for the first account, starts empty for another', () => {

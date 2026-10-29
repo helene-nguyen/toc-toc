@@ -8,6 +8,7 @@ import type { Timeline } from '../domain/timeline';
 import { sessionSummary, rhythm } from '../domain/stats';
 import { drawChart, type ChartMode, type Palette } from '../chart/drawChart';
 import { clockAt, hourMinSec, minSec, shortDate } from '../format';
+import { feelingLabel } from '../feeling';
 import { paginate, ROW_HEIGHT, type RowMinutes } from './paginate';
 import './print.css';
 
@@ -26,7 +27,6 @@ const PAPER: Palette = {
   'move-soft': 'rgba(15, 127, 115, 0.14)'
 };
 
-const INTENSITY_LABEL = { 1: 'Légère', 2: 'Moyenne', 3: 'Forte' } as const;
 
 export interface PrintOptions {
   rowMinutes: RowMinutes;
@@ -132,7 +132,10 @@ export const PrintSheet = ({ monitoring, timeline, options }: PrintSheetProps) =
                     </div>
                     <div>
                       <dt>Contractions</dt>
-                      <dd>{summary.contractionCount}</dd>
+                      <dd>
+                        {summary.contractionCount}
+                        {summary.braxtonHicksCount > 0 && ` (+ ${summary.braxtonHicksCount} sans douleur)`}
+                      </dd>
                     </div>
                     <div>
                       <dt>Intervalle moy.</dt>
@@ -197,7 +200,7 @@ export const PrintSheet = ({ monitoring, timeline, options }: PrintSheetProps) =
                           <td>{clockAt(monitoring.startedAt, contraction.end!)}</td>
                           <td>{Math.round(contraction.end! - contraction.start)} s</td>
                           <td>{previous ? minSec(contraction.start - previous.start) : '–'}</td>
-                          <td>{INTENSITY_LABEL[contraction.intensity]}</td>
+                          <td>{feelingLabel(contraction)}</td>
                         </tr>
                       );
                     })}

@@ -66,14 +66,18 @@ export class PostgresMonitoringRepository implements MonitoringRepository {
     await this.pool.query('UPDATE monitoring SET user_id = $1 WHERE user_id IS NULL', [userId]);
   };
 
-  saveContraction = async (monitoringId: string, { id, startedAt, endedAt, intensity }: Contraction): Promise<void> => {
+  saveContraction = async (
+    monitoringId: string,
+    { id, startedAt, endedAt, intensity, braxtonHicks }: Contraction
+  ): Promise<void> => {
     await this.pool.query(
-      `INSERT INTO contraction (id, monitoring_id, started_at, ended_at, intensity)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO contraction (id, monitoring_id, started_at, ended_at, intensity, braxton_hicks)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (id) DO UPDATE
-         SET started_at = EXCLUDED.started_at, ended_at = EXCLUDED.ended_at, intensity = EXCLUDED.intensity
+         SET started_at = EXCLUDED.started_at, ended_at = EXCLUDED.ended_at,
+             intensity = EXCLUDED.intensity, braxton_hicks = EXCLUDED.braxton_hicks
          WHERE contraction.monitoring_id = EXCLUDED.monitoring_id`,
-      [id, monitoringId, startedAt, endedAt, intensity]
+      [id, monitoringId, startedAt, endedAt, intensity, braxtonHicks]
     );
   };
 
@@ -105,7 +109,7 @@ export class PostgresMonitoringRepository implements MonitoringRepository {
   private withEvents = async (monitoring: Omit<Monitoring, 'contractions' | 'movements'>): Promise<Monitoring> => {
     const [contractions, movements] = await Promise.all([
       this.pool.query<Contraction>(
-        `SELECT id, started_at AS "startedAt", ended_at AS "endedAt", intensity
+        `SELECT id, started_at AS "startedAt", ended_at AS "endedAt", intensity, braxton_hicks AS "braxtonHicks"
          FROM contraction WHERE monitoring_id = $1 ORDER BY started_at`,
         [monitoring.id]
       ),

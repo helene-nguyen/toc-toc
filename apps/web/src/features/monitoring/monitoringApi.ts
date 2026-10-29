@@ -27,7 +27,7 @@ export const monitoringApi = api.injectEndpoints({
     }),
     deleteMonitoring: build.mutation<void, string>({
       query: (id) => ({ url: `/monitorings/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['Monitorings']
+      invalidatesTags: ['Monitorings', 'Practice']
     }),
     saveContraction: build.mutation<Contraction, { monitoringId: string; contraction: Contraction }>({
       query: ({ monitoringId, contraction: { id, ...body } }) => ({
@@ -36,11 +36,19 @@ export const monitoringApi = api.injectEndpoints({
         body
       }),
       transformResponse: (response: { contraction: Contraction }) => response.contraction,
-      invalidatesTags: (_result, _error, { monitoringId }) => ['Monitorings', { type: 'Monitoring', id: monitoringId }]
+      invalidatesTags: (_result, _error, { monitoringId }) => [
+        'Monitorings',
+        'Practice',
+        { type: 'Monitoring', id: monitoringId }
+      ]
     }),
     removeContraction: build.mutation<void, { monitoringId: string; id: string }>({
       query: ({ monitoringId, id }) => ({ url: `/monitorings/${monitoringId}/contractions/${id}`, method: 'DELETE' }),
-      invalidatesTags: (_result, _error, { monitoringId }) => ['Monitorings', { type: 'Monitoring', id: monitoringId }]
+      invalidatesTags: (_result, _error, { monitoringId }) => [
+        'Monitorings',
+        'Practice',
+        { type: 'Monitoring', id: monitoringId }
+      ]
     }),
     recordMovement: build.mutation<Movement, { monitoringId: string; movement: Movement }>({
       query: ({ monitoringId, movement: { id, at } }) => ({
