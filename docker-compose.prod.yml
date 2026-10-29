@@ -18,10 +18,11 @@ services:
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-    # 127.0.0.1 only: the phone reaches the app through Tailscale (HTTPS),
-    # never straight from the LAN or the internet — see README
+    # on every interface, like the Pi's other apps: a reverse proxy, a
+    # Cloudflare tunnel or Tailscale puts HTTPS in front — sign-in needs it
+    # (the session cookies are HTTPS-only), see README
     ports:
-      - 127.0.0.1:${APP_PORT:-4210}:4210
+      - ${APP_PORT:-4210}:4210
     depends_on:
       db:
         condition: service_healthy

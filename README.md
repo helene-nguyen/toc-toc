@@ -62,9 +62,15 @@ Sans registre, construire l'image sur le Pi : `docker compose -f docker-compose.
 
 Mettre à jour : `pull` puis `up -d` à nouveau.
 
-### Accès depuis le téléphone : Tailscale
+### Accès depuis le téléphone
 
-L'app n'écoute que sur `127.0.0.1:4210`. Pour y accéder depuis le téléphone, à la maison comme à la maternité, en HTTPS et sans ouvrir de port sur la box :
+L'app est publiée sur le port 4210 du Pi (toutes les interfaces). Il faut mettre du **HTTPS** devant : la connexion en dépend (les cookies de session ne circulent qu'en HTTPS), comme garder l'écran allumé et installer l'app sur le téléphone. Ouvrir `http://<ip-du-pi>:4210` directement affiche l'app mais ne permet pas de se connecter.
+
+Avec un domaine chez Cloudflare (par exemple `toc-toc.yumicode.net`) : un reverse proxy sur le Pi ou un Cloudflare Tunnel envoie le domaine vers `http://<pi>:4210` (Cloudflare ne se connecte pas directement au port 4210). `APP_URL` doit être cette adresse en `https://`, et `ALLOWED_EMAILS` doit être rempli puisque l'app est publique.
+
+Docker ouvre lui-même le port publié, sans passer par `ufw` : une règle `ufw` pour 4210 n'est pas nécessaire.
+
+Sans domaine, avec Tailscale, à la maison comme à la maternité et sans ouvrir de port sur la box :
 
 1. Installer [Tailscale](https://tailscale.com/download) sur le Pi et sur le téléphone, avec le même compte.
 2. Sur le Pi : `sudo tailscale serve --bg 4210`
