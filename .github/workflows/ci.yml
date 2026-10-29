@@ -19,7 +19,7 @@ jobs:
           POSTGRES_PASSWORD: toctoc
           POSTGRES_DB: toctoc
         ports:
-          - 5436:5432
+          - 5445:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 5s

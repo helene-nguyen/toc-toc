@@ -25,7 +25,7 @@ Prérequis : Node 24, pnpm 9 (`corepack enable`), Docker.
 ```bash
 cp .env.example .env
 cp apps/api/.env.example apps/api/.env
-docker compose up -d          # PostgreSQL sur le port 5436
+docker compose up -d          # PostgreSQL sur le port 5445
 pnpm install
 pnpm --filter @toc-toc/api migrate
 pnpm dev                      # API sur :4210, web sur http://localhost:5173

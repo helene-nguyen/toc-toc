@@ -5,7 +5,7 @@ import pg from 'pg';
 export const dbConfig = () => ({
   // 127.0.0.1, not localhost: Node may resolve localhost to IPv6 (::1) first
   host: process.env.POSTGRES_HOST ?? '127.0.0.1',
-  port: Number(process.env.POSTGRES_PORT ?? 5436),
+  port: Number(process.env.POSTGRES_PORT ?? 5445),
   database: process.env.POSTGRES_DB ?? 'toctoc',
   user: process.env.POSTGRES_USER ?? 'toctoc',
   password: process.env.POSTGRES_PASSWORD ?? 'toctoc'
