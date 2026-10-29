@@ -8,6 +8,7 @@
 // - refused (other 4xx) → dropped with its reason, so one bad request never
 //   blocks the rest; deleting what is already gone (404) counts as done
 import { useEffect, useRef, useState } from 'react';
+import { api } from '../../../app/api';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import type { AppDispatch } from '../../../app/store';
 import { monitoringApi } from '../monitoringApi';
@@ -79,7 +80,12 @@ export const useOutboxSync = () => {
       if ('sent' in outcome) dispatch(requestSent(next.seq));
       else if ('offline' in outcome) dispatch(syncPaused('OFFLINE'));
       else if ('signedOut' in outcome) dispatch(syncPaused('SIGNED_OUT'));
-      else dispatch(requestRejected({ seq: next.seq, error: outcome.rejected }));
+      else {
+        dispatch(requestRejected({ seq: next.seq, error: outcome.rejected }));
+        // a refused start means another monitoring runs on the server: refresh
+        // the list so useRunningMonitoringSync swaps it in
+        if (next.kind === 'start') dispatch(api.util.invalidateTags(['Monitorings']));
+      }
       // the queue may have changed while this one was in flight: look again
       if ('sent' in outcome || 'rejected' in outcome) setRetry((count) => count + 1);
     });

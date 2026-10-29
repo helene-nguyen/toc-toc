@@ -77,6 +77,12 @@ const enqueuePractice = (state: MonitoringState, contraction: PracticeContractio
   enqueue(state, { kind: 'savePractice', contraction: { ...contraction } });
 };
 
+// the requests that belong to one monitoring (practice contractions don't)
+const isOfMonitoring = (request: OutboxRequest, id: string) =>
+  'monitoringId' in request
+    ? request.monitoringId === id
+    : (request.kind === 'start' || request.kind === 'stop') && request.id === id;
+
 const isRunning = (live: Monitoring | null): live is Monitoring => live !== null && live.stoppedAt === null;
 
 const monitoringSlice = createSlice({
@@ -181,11 +187,23 @@ const monitoringSlice = createSlice({
       if (state.live?.id !== id || state.live.stoppedAt === null) return;
       state.live = null;
       // only this monitoring's requests go; practice contractions stay
-      const ofThisMonitoring = (request: OutboxRequest) =>
-        'monitoringId' in request
-          ? request.monitoringId === id
-          : (request.kind === 'start' || request.kind === 'stop') && request.id === id;
-      state.outbox = state.outbox.filter((request) => !ofThisMonitoring(request));
+      state.outbox = state.outbox.filter((request) => !isOfMonitoring(request, id));
+    },
+
+    //~ A monitoring running on the server but not on this phone (signed in
+    // again, another phone): it becomes the live one here
+    liveResumed: (state, { payload }: PayloadAction<Monitoring>) => {
+      if (isRunning(state.live)) return;
+      state.live = payload;
+    },
+
+    //~ A monitoring started on this phone that the server refused (another
+    // one was already running there): nothing of it can be saved, drop it
+    liveDiscarded: (state, { payload: id }: PayloadAction<string>) => {
+      if (state.live?.id !== id) return;
+      state.live = null;
+      state.outbox = state.outbox.filter((request) => !isOfMonitoring(request, id));
+      state.syncError = null;
     },
 
     //~ Who is signed in, once known. Data recorded before accounts existed
@@ -256,6 +274,8 @@ export const {
   movementTapped,
   lastTapUndone,
   liveForgotten,
+  liveResumed,
+  liveDiscarded,
   practiceTapped,
   practiceRemoved,
   requestSent,

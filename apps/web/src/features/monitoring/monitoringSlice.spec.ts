@@ -6,7 +6,9 @@ import {
   feelingChosen,
   feelingChanged,
   lastTapUndone,
+  liveDiscarded,
   liveForgotten,
+  liveResumed,
   monitoringReducer,
   monitoringStarted,
   monitoringStopped,
@@ -182,6 +184,40 @@ describe('monitoringSlice', () => {
     expect(first).toMatchObject({ ownerId: 7, live: { id: 'm1' } });
     expect(again).toBe(first);
     expect(other).toEqual({ ...initialMonitoringState, ownerId: 8 });
+  });
+
+  it('resumes a monitoring running on the server, unless one already runs here', () => {
+    const fromServer = {
+      id: 'm1',
+      startedAt: at(0),
+      stoppedAt: null,
+      contractions: [{ id: 'c1', startedAt: at(5), endedAt: at(6), intensity: 2 as const, braxtonHicks: false }],
+      movements: []
+    };
+
+    const resumed = monitoringReducer(initialMonitoringState, liveResumed(fromServer));
+    const busy = monitoringReducer(play(monitoringStarted({ id: 'm2', at: at(1) })), liveResumed(fromServer));
+
+    expect(resumed.live).toEqual(fromServer);
+    expect(resumed.outbox).toEqual([]);
+    expect(busy.live?.id).toBe('m2');
+  });
+
+  it('drops a monitoring the server refused, with its queued taps and the refusal message', () => {
+    const refused = monitoringReducer(
+      play(
+        monitoringStarted({ id: 'm2', at: at(0) }),
+        contractionTapped({ id: 'c1', at: at(1) }),
+        practiceTapped({ id: 'p1', at: at(2) })
+      ),
+      requestRejected({ seq: 1, error: 'MONITORING_ALREADY_RUNNING' })
+    );
+
+    const dropped = monitoringReducer(refused, liveDiscarded('m2'));
+
+    expect(dropped.live).toBeNull();
+    expect(kinds(dropped)).toEqual(['savePractice']);
+    expect(dropped.syncError).toBeNull();
   });
 
   it('forgets a stopped monitoring deleted from the history, never a running one', () => {

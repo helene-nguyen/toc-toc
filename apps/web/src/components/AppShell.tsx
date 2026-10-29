@@ -1,6 +1,7 @@
 //~ The frame around every signed-in page: the brand and the account on
 // top, the page, and the bottom bar within thumb reach — the app is used
-// one-handed on a phone. The outbox syncs from here, whatever page is open.
+// one-handed on a phone. The outbox syncs from here, and the running
+// monitoring is matched with the server's, whatever page is open.
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { api } from '../app/api';
@@ -8,10 +9,12 @@ import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { useMeQuery, useSignOutMutation } from '../features/auth/authApi';
 import { signedOut } from '../features/monitoring/monitoringSlice';
 import { useOutboxSync } from '../features/monitoring/hooks/useOutboxSync';
+import { useRunningMonitoringSync } from '../features/monitoring/hooks/useRunningMonitoringSync';
 import './appShell.css';
 
 export const AppShell = () => {
   useOutboxSync();
+  useRunningMonitoringSync();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { data: user } = useMeQuery();
