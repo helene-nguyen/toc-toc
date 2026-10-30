@@ -1,10 +1,10 @@
 //~ The journal: one row per contraction, newest on top, with clock times —
-// the figures a midwife asks for on the phone. How each one felt can be
-// changed on any row, during the session or afterwards: the intensity
-// doesn't move the trace, "painless" (Braxton-Hicks) draws it low.
-import type { Monitoring } from '../monitoringTypes';
+// the figures a midwife asks for on the phone. On any row, during the
+// session or afterwards, the pain felt can be changed (it doesn't move the
+// trace) and so can the intensity drawn (auto, or a cap).
+import type { CurveLevel, Monitoring } from '../monitoringTypes';
 import type { Timeline } from '../domain/timeline';
-import { FEELINGS, feelingLabel, feelingOf, parseFeeling, type Feeling } from '../feeling';
+import { CURVES, PAINS, curveLabel, curveOf, painLabel, painOf, parsePain, type Pain } from '../feeling';
 import { clockAt, minSec } from '../format';
 
 interface ContractionLogProps {
@@ -13,8 +13,9 @@ interface ContractionLogProps {
   // undo only makes sense while the monitoring runs
   canUndo?: boolean;
   onUndo?: () => void;
-  // without it, the feeling is shown read-only
-  onFeelingChange?: (contractionId: string, feeling: Feeling) => void;
+  // without them, pain and intensity are shown read-only
+  onPainChange?: (contractionId: string, pain: Pain) => void;
+  onCurveChange?: (contractionId: string, curve: CurveLevel) => void;
 }
 
 export const ContractionLog = ({
@@ -22,7 +23,8 @@ export const ContractionLog = ({
   timeline,
   canUndo = false,
   onUndo,
-  onFeelingChange
+  onPainChange,
+  onCurveChange
 }: ContractionLogProps) => {
   // the timeline lists contractions by start, like this sorted copy: same index, same contraction
   const byStart = [...monitoring.contractions].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
@@ -47,13 +49,14 @@ export const ContractionLog = ({
               <th>Début</th>
               <th>Durée</th>
               <th>Intervalle</th>
+              <th>Douleur</th>
               <th>Intensité</th>
             </tr>
           </thead>
           <tbody>
             {count === 0 && (
               <tr>
-                <td colSpan={5} className="log__empty">
+                <td colSpan={6} className="log__empty">
                   Aucune contraction pour l'instant. Appuyez sur le grand bouton au début de la prochaine.
                 </td>
               </tr>
@@ -74,21 +77,39 @@ export const ContractionLog = ({
                   ) : (
                     <span className="log__bar" style={{ width: contraction.intensity * 12 }} />
                   )}{' '}
-                  {onFeelingChange ? (
+                  {onPainChange ? (
                     <select
                       className="log__intensity"
-                      value={feelingOf(contraction)}
-                      aria-label={`Ressenti de la contraction ${number}`}
-                      onChange={(event) => onFeelingChange(id, parseFeeling(event.target.value))}
+                      value={painOf(contraction)}
+                      aria-label={`Douleur de la contraction ${number}`}
+                      onChange={(event) => onPainChange(id, parsePain(event.target.value))}
                     >
-                      {FEELINGS.map(({ value, short }) => (
+                      {PAINS.map(({ value, label }) => (
                         <option key={value} value={value}>
-                          {short}
+                          {label}
                         </option>
                       ))}
                     </select>
                   ) : (
-                    feelingLabel(contraction)
+                    painLabel(contraction)
+                  )}
+                </td>
+                <td>
+                  {onCurveChange ? (
+                    <select
+                      className="log__intensity"
+                      value={curveOf(contraction)}
+                      aria-label={`Intensité de la contraction ${number} sur le tracé`}
+                      onChange={(event) => onCurveChange(id, event.target.value as CurveLevel)}
+                    >
+                      {CURVES.map(({ value, label }) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    curveLabel(contraction)
                   )}
                 </td>
               </tr>

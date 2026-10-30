@@ -20,14 +20,14 @@ describe('practice history', () => {
       startedAt: at(5),
       endedAt: at(5.5),
       intensity: 1,
-      braxtonHicks: true
+      braxtonHicks: true, curve: 'auto' as const
     });
     await monitorings.saveContraction(ids.monitoring, {
       id: ids.contraction2,
       startedAt: at(10),
       endedAt: at(11),
       intensity: 2,
-      braxtonHicks: false
+      braxtonHicks: false, curve: 'auto' as const
     });
   });
 

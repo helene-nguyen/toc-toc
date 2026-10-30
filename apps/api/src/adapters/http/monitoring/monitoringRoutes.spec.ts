@@ -111,7 +111,7 @@ describe('/api/v1/monitorings', () => {
       startedAt: at(10).toISOString(),
       endedAt: at(11).toISOString(),
       intensity: 1,
-      braxtonHicks: true
+      braxtonHicks: true, curve: 'auto' as const
     });
     // an older app version sends no mark
     await api.contraction(ids.contraction2, {
@@ -121,9 +121,37 @@ describe('/api/v1/monitorings', () => {
     });
 
     expect((await api.get()).json().monitoring.contractions).toMatchObject([
-      { id: ids.contraction, braxtonHicks: true },
-      { id: ids.contraction2, braxtonHicks: false }
+      { id: ids.contraction, braxtonHicks: true, curve: 'auto' as const },
+      { id: ids.contraction2, braxtonHicks: false, curve: 'auto' as const }
     ]);
+  });
+
+  it("keeps the curve level chosen apart from the pain, 'auto' when missing, 400 for an unknown one", async () => {
+    const api = await startedApp();
+
+    await api.contraction(ids.contraction, {
+      startedAt: at(10).toISOString(),
+      endedAt: at(11).toISOString(),
+      intensity: 3,
+      curve: 'low'
+    });
+    await api.contraction(ids.contraction2, {
+      startedAt: at(20).toISOString(),
+      endedAt: at(21).toISOString(),
+      intensity: 1
+    });
+    const unknown = await api.contraction(ids.contraction2, {
+      startedAt: at(20).toISOString(),
+      endedAt: at(21).toISOString(),
+      intensity: 1,
+      curve: 'extreme'
+    });
+
+    expect((await api.get()).json().monitoring.contractions).toMatchObject([
+      { id: ids.contraction, intensity: 3, curve: 'low' },
+      { id: ids.contraction2, curve: 'auto' }
+    ]);
+    expect(unknown.statusCode).toBe(400);
   });
 
   it('removes a tap made by mistake, 404 when it is already gone', async () => {

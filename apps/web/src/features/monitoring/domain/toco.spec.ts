@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BRAXTON_HICKS_TOP, FULL_CLIMB, REST, baseline, contractionLevel, tocoValue } from './toco';
+import { CLIMB_TIME, CURVE_CAP, FULL_CLIMB, REST, baseline, contractionLevel, tocoValue } from './toco';
 import type { Timeline } from './timeline';
 
 // the trace wobbles by a couple of mmHg (and is capped at 100): compare loosely
@@ -8,7 +8,7 @@ const expectNear = (actual: number, expected: number) => expect(Math.abs(actual 
 const timeline = (overrides: Partial<Timeline> = {}): Timeline => ({
   now: 600,
   running: true,
-  contractions: [{ start: 100, end: 160, intensity: 2, braxtonHicks: false }],
+  contractions: [{ start: 100, end: 160, intensity: 2, braxtonHicks: false, curve: 'auto' }],
   movements: [],
   ...overrides
 });
@@ -47,15 +47,15 @@ describe('tocoValue', () => {
   });
 
   it('draws the same curve whatever the felt intensity', () => {
-    const light = timeline({ contractions: [{ start: 100, end: 160, intensity: 1, braxtonHicks: false }] });
-    const strong = timeline({ contractions: [{ start: 100, end: 160, intensity: 3, braxtonHicks: false }] });
+    const light = timeline({ contractions: [{ start: 100, end: 160, intensity: 1, braxtonHicks: false, curve: 'auto' }] });
+    const strong = timeline({ contractions: [{ start: 100, end: 160, intensity: 3, braxtonHicks: false, curve: 'auto' }] });
 
     for (const t of [105, 120, 150, 165]) expect(tocoValue(light, t)).toBe(tocoValue(strong, t));
   });
 
   it('comes down at the pace it went up: the climb replayed backwards', () => {
     // a 20 s contraction stops around 45 mmHg and takes 20 s to settle
-    const short = timeline({ contractions: [{ start: 100, end: 120, intensity: 2, braxtonHicks: false }] });
+    const short = timeline({ contractions: [{ start: 100, end: 120, intensity: 2, braxtonHicks: false, curve: 'auto' }] });
     const above = (t: number) => tocoValue(short, t) - baseline(t);
 
     expectNear(above(120) + REST, 45);
@@ -66,7 +66,7 @@ describe('tocoValue', () => {
   });
 
   it(`takes the full ${FULL_CLIMB} s to come down from 100`, () => {
-    const long = timeline({ contractions: [{ start: 100, end: 280, intensity: 2, braxtonHicks: false }] });
+    const long = timeline({ contractions: [{ start: 100, end: 280, intensity: 2, braxtonHicks: false, curve: 'auto' }] });
     const above = (t: number) => tocoValue(long, t) - baseline(t);
 
     expectNear(above(280) + REST, 100);
@@ -78,25 +78,44 @@ describe('tocoValue', () => {
   });
 
   it('keeps climbing for a contraction still going on, and draws nothing after now', () => {
-    const live = timeline({ now: 130, contractions: [{ start: 100, end: null, intensity: 2, braxtonHicks: false }] });
+    const live = timeline({ now: 130, contractions: [{ start: 100, end: null, intensity: 2, braxtonHicks: false, curve: 'auto' }] });
 
     expect(tocoValue(live, 125) - baseline(125) + REST).toBeGreaterThan(48);
     expect(tocoValue(live, 200)).toBeCloseTo(baseline(200));
   });
 
-  it('keeps a painless (Braxton-Hicks) contraction low: 30 mmHg at most, same timing', () => {
-    const painless = timeline({ contractions: [{ start: 100, end: 300, intensity: 3, braxtonHicks: true }] });
-    const above = (t: number) => tocoValue(painless, t) - baseline(t);
+  it('caps the trace at the intensity chosen: low 30, medium 60, high 80 mmHg — same climb up to there', () => {
+    for (const curve of ['low', 'medium', 'high'] as const) {
+      const capped = timeline({ contractions: [{ start: 100, end: 300, intensity: 2, braxtonHicks: false, curve }] });
+      const auto = timeline({ contractions: [{ start: 100, end: 300, intensity: 2, braxtonHicks: false, curve: 'auto' }] });
+      const above = (tl: Timeline, t: number) => tocoValue(tl, t) - baseline(t);
 
-    expect(above(110)).toBeGreaterThan(0);
-    expect(above(110)).toBeLessThan(above(250));
-    expect(above(250) + REST).toBeLessThanOrEqual(BRAXTON_HICKS_TOP + 1);
-    expect(above(250) + REST).toBeGreaterThan(BRAXTON_HICKS_TOP - 2);
-    expect(tocoValue(painless, 300 + FULL_CLIMB + 1)).toBeCloseTo(baseline(300 + FULL_CLIMB + 1));
+      // the start is the same climb
+      expect(above(capped, 103)).toBeCloseTo(above(auto, 103));
+      // then it holds at the cap
+      expectNear(above(capped, 250) + REST, CURVE_CAP[curve]);
+      // after "end" it comes down at once, no lingering at the cap
+      expect(above(capped, 300 + CLIMB_TIME[curve] / 2) + REST).toBeLessThan(CURVE_CAP[curve] - 5);
+      // back to rest as fast as it climbed to the cap
+      expect(tocoValue(capped, 300 + CLIMB_TIME[curve] + 1)).toBeCloseTo(baseline(300 + CLIMB_TIME[curve] + 1));
+    }
+  });
+
+  it('climbs to each cap at the auto pace: 30 mmHg in 10 s, 60 in 30 s, 80 in 45 s', () => {
+    expect(CLIMB_TIME.low).toBeCloseTo(10, 1);
+    expect(CLIMB_TIME.medium).toBeCloseTo(30, 1);
+    expect(CLIMB_TIME.high).toBeCloseTo(45, 1);
+    expect(CLIMB_TIME.auto).toBe(FULL_CLIMB);
+  });
+
+  it('draws a painless (Braxton-Hicks) contraction like any other: the pain plays no part', () => {
+    const painless = timeline({ contractions: [{ start: 100, end: 160, intensity: 1, braxtonHicks: true, curve: 'auto' }] });
+
+    for (const t of [105, 130, 170]) expect(tocoValue(painless, t)).toBe(tocoValue(timeline(), t));
   });
 
   it('stays between 0 and 100 mmHg', () => {
-    const long = timeline({ contractions: [{ start: 0, end: 200, intensity: 3, braxtonHicks: false }] });
+    const long = timeline({ contractions: [{ start: 0, end: 200, intensity: 3, braxtonHicks: false, curve: 'auto' }] });
 
     for (let t = 0; t < 350; t += 5) {
       expect(tocoValue(long, t)).toBeGreaterThanOrEqual(0);

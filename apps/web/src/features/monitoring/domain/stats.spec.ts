@@ -7,7 +7,7 @@ const regular = (count: number, every: number, lasting: number, from = 60): Time
   Array.from({ length: count }, (_, index) => ({
     start: from + index * every,
     end: from + index * every + lasting,
-    intensity: 2 as const, braxtonHicks: false
+    intensity: 2 as const, braxtonHicks: false, curve: 'auto' as const
   }));
 
 describe('rhythm', () => {
@@ -41,7 +41,7 @@ describe('rhythm', () => {
   });
 
   it('leaves a contraction going on out of the average duration', () => {
-    const contractions = [...regular(2, 300, 60), { start: 700, end: null, intensity: 2 as const, braxtonHicks: false }];
+    const contractions = [...regular(2, 300, 60), { start: 700, end: null, intensity: 2 as const, braxtonHicks: false, curve: 'auto' as const }];
 
     expect(rhythm({ now: 720, running: true, contractions, movements: [] }).averageDuration).toBe(60);
   });
@@ -94,7 +94,7 @@ describe('sessionSummary', () => {
 describe('painless (Braxton-Hicks) contractions', () => {
   it('stay out of the rhythm, the 5-1-1 check and the session figures', () => {
     const labour = regular(13, 290, 65);
-    const painless = [500, 1700, 3000].map((start) => ({ start, end: start + 30, intensity: 1 as const, braxtonHicks: true }));
+    const painless = [500, 1700, 3000].map((start) => ({ start, end: start + 30, intensity: 1 as const, braxtonHicks: true, curve: 'auto' as const }));
     const timeline: Timeline = {
       now: 3900,
       running: true,

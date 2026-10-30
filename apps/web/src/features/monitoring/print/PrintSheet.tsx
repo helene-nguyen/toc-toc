@@ -8,7 +8,7 @@ import type { Timeline } from '../domain/timeline';
 import { sessionSummary, rhythm } from '../domain/stats';
 import { drawChart, type ChartMode, type Palette } from '../chart/drawChart';
 import { clockAt, hourMinSec, minSec, shortDate } from '../format';
-import { feelingLabel } from '../feeling';
+import { curveLabel, painLabel } from '../feeling';
 import { paginate, ROW_HEIGHT, type RowMinutes } from './paginate';
 import './print.css';
 
@@ -186,6 +186,7 @@ export const PrintSheet = ({ monitoring, timeline, options }: PrintSheetProps) =
                       <th>Fin</th>
                       <th>Durée</th>
                       <th>Intervalle</th>
+                      <th>Douleur</th>
                       <th>Intensité</th>
                     </tr>
                   </thead>
@@ -200,7 +201,8 @@ export const PrintSheet = ({ monitoring, timeline, options }: PrintSheetProps) =
                           <td>{clockAt(monitoring.startedAt, contraction.end!)}</td>
                           <td>{Math.round(contraction.end! - contraction.start)} s</td>
                           <td>{previous ? minSec(contraction.start - previous.start) : '–'}</td>
-                          <td>{feelingLabel(contraction)}</td>
+                          <td>{painLabel(contraction)}</td>
+                          <td>{curveLabel(contraction)}</td>
                         </tr>
                       );
                     })}

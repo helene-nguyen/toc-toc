@@ -5,8 +5,9 @@ import { useCallback, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { useAppDispatch } from '../../../app/hooks';
 import { useSaveContractionMutation } from '../monitoringApi';
-import { feelingChanged } from '../monitoringSlice';
-import { withFeeling, type Feeling } from '../feeling';
+import { curveChanged, painChanged } from '../monitoringSlice';
+import { withPain, type Pain } from '../feeling';
+import type { Contraction, CurveLevel } from '../monitoringTypes';
 import { useMonitoring } from '../hooks/useMonitoring';
 import { useDeleteSession } from '../hooks/useDeleteSession';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -59,20 +60,24 @@ export const SessionDetailPage = () => {
 
   //~ The session recorded on this phone goes through the outbox (works
   // offline); an older one is saved straight to the API
-  const changeFeeling = async (contractionId: string, feeling: Feeling) => {
-    if (isLocal) {
-      dispatch(feelingChanged({ contractionId, feeling }));
-      return;
-    }
+  const saveChanged = async (contractionId: string, change: (contraction: Contraction) => Contraction) => {
     const contraction = monitoring.contractions.find((candidate) => candidate.id === contractionId);
     if (!contraction) return;
     try {
-      await saveContraction({ monitoringId: monitoring.id, contraction: withFeeling(contraction, feeling) }).unwrap();
+      await saveContraction({ monitoringId: monitoring.id, contraction: change(contraction) }).unwrap();
       setIntensityError(false);
     } catch {
       setIntensityError(true);
     }
   };
+  const changePain = (contractionId: string, pain: Pain) =>
+    isLocal
+      ? dispatch(painChanged({ contractionId, pain }))
+      : saveChanged(contractionId, (contraction) => withPain(contraction, pain));
+  const changeCurve = (contractionId: string, curve: CurveLevel) =>
+    isLocal
+      ? dispatch(curveChanged({ contractionId, curve }))
+      : saveChanged(contractionId, (contraction) => ({ ...contraction, curve }));
 
   return (
     <div className="monitoring session">
@@ -156,7 +161,12 @@ export const SessionDetailPage = () => {
           L'intensité n'a pas pu être enregistrée : le serveur est injoignable. Réessayez une fois connecté.
         </p>
       )}
-      <ContractionLog monitoring={monitoring} timeline={timeline} onFeelingChange={changeFeeling} />
+      <ContractionLog
+        monitoring={monitoring}
+        timeline={timeline}
+        onPainChange={changePain}
+        onCurveChange={changeCurve}
+      />
     </div>
   );
 };

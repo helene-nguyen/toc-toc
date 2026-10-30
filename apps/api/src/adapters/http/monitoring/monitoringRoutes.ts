@@ -12,7 +12,7 @@ import type { SaveContraction } from '../../../core/monitoring/saveContraction.j
 import type { RemoveContraction } from '../../../core/monitoring/removeContraction.js';
 import type { RecordMovement } from '../../../core/monitoring/recordMovement.js';
 import type { RemoveMovement } from '../../../core/monitoring/removeMovement.js';
-import type { Intensity } from '../../../core/monitoring/ports.js';
+import type { CurveLevel, Intensity } from '../../../core/monitoring/ports.js';
 
 //~ One bundle for all monitoring use cases
 export interface MonitoringUseCases {
@@ -80,8 +80,8 @@ interface StopBody {
 }
 
 //~ The whole contraction, every time (endedAt null = still going on).
-// braxtonHicks may be missing: phones still running an older app version
-// don't send it, and their contractions are labour ones
+// braxtonHicks and curve may be missing: phones still running an older app
+// version don't send them — a labour contraction, drawn the 'auto' way
 const contractionBodySchema = {
   type: 'object',
   required: ['startedAt', 'endedAt', 'intensity'],
@@ -90,7 +90,8 @@ const contractionBodySchema = {
     startedAt: dateTime,
     endedAt: { type: ['string', 'null'], format: 'date-time' },
     intensity: { type: 'integer', enum: [1, 2, 3] },
-    braxtonHicks: { type: 'boolean' }
+    braxtonHicks: { type: 'boolean' },
+    curve: { type: 'string', enum: ['auto', 'low', 'medium', 'high'] }
   }
 };
 
@@ -99,6 +100,7 @@ interface ContractionBody {
   endedAt: string | null;
   intensity: Intensity;
   braxtonHicks?: boolean;
+  curve?: CurveLevel;
 }
 
 const movementBodySchema = {
@@ -197,13 +199,14 @@ export const monitoringRoutes =
       '/api/v1/monitorings/:id/contractions/:eventId',
       { preHandler: [app.authenticate], schema: { params: eventParamsSchema, body: contractionBodySchema } },
       async (request, reply) => {
-        const { startedAt, endedAt, intensity, braxtonHicks = false } = request.body;
+        const { startedAt, endedAt, intensity, braxtonHicks = false, curve = 'auto' } = request.body;
         const result = await saveContraction.handle(request.params.id, request.user.sub, {
           id: request.params.eventId,
           startedAt: new Date(startedAt),
           endedAt: endedAt === null ? null : new Date(endedAt),
           intensity,
-          braxtonHicks
+          braxtonHicks,
+          curve
         });
 
         if (!result.ok) {

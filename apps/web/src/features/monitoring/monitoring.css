@@ -541,6 +541,49 @@
   flex-direction: column;
   gap: 8px;
 }
+/* two choices after a contraction: a heading, then four chips on one line */
+.tap-dock__ask-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tap-dock__ask-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tap-dock__ask-block .tap-dock__ask {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.tap-dock__ask-block .tap-dock__chip {
+  min-height: 38px;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+.tap-dock__chip.tap-dock__chip--curve[aria-pressed='true'] {
+  border-color: var(--trace);
+  background: transparent;
+  color: var(--trace);
+  font-weight: 700;
+}
+.tap-dock__done {
+  min-height: 32px;
+  padding: 2px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--ink-fg);
+  font-weight: 700;
+  cursor: pointer;
+}
 .tap-dock__ask {
   display: flex;
   flex-wrap: wrap;

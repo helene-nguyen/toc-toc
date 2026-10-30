@@ -4,9 +4,9 @@
 // Pi in order, whenever it is reachable. The state is saved in localStorage
 // (see app/store.ts): a reload or a flat battery loses nothing.
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Contraction, Monitoring, Movement } from './monitoringTypes';
+import type { Contraction, CurveLevel, Monitoring, Movement } from './monitoringTypes';
 import type { PracticeContraction } from '../practice/practiceTypes';
-import { withFeeling, type Feeling } from './feeling';
+import { withPain, type Pain } from './feeling';
 
 //~ One request waiting to reach the API — `seq` identifies it in the queue
 export type OutboxRequest = { seq: number } & (
@@ -125,7 +125,14 @@ const monitoringSlice = createSlice({
           ongoing.endedAt = at < ongoing.startedAt ? ongoing.startedAt : at;
           enqueueSave(state, live.id, ongoing);
         } else {
-          const contraction: Contraction = { id, startedAt: at, endedAt: null, intensity: 2, braxtonHicks: false };
+          const contraction: Contraction = {
+            id,
+            startedAt: at,
+            endedAt: null,
+            intensity: 2,
+            braxtonHicks: false,
+            curve: 'auto'
+          };
           live.contractions.push(contraction);
           enqueueSave(state, live.id, contraction);
         }
@@ -133,22 +140,40 @@ const monitoringSlice = createSlice({
       prepare: prepareTap
     },
 
-    //~ How it felt (intensity, or painless), asked once a contraction has ended
-    feelingChosen: (state, { payload }: PayloadAction<Feeling>) => {
+    //~ The pain felt, asked once a contraction has ended
+    painChosen: (state, { payload }: PayloadAction<Pain>) => {
       const live = state.live;
       const last = live?.contractions.at(-1);
       if (!live || !last) return;
-      Object.assign(last, withFeeling(last, payload));
+      Object.assign(last, withPain(last, payload));
       enqueueSave(state, live.id, last);
     },
 
-    //~ The feeling changed afterwards, from the journal — the session may
-    // be stopped already; the server accepts the change either way
-    feelingChanged: (state, { payload }: PayloadAction<{ contractionId: string; feeling: Feeling }>) => {
+    //~ The pain changed afterwards, from the journal — the session may be
+    // stopped already; the server accepts the change either way
+    painChanged: (state, { payload }: PayloadAction<{ contractionId: string; pain: Pain }>) => {
       const live = state.live;
       const contraction = live?.contractions.find((candidate) => candidate.id === payload.contractionId);
       if (!live || !contraction) return;
-      Object.assign(contraction, withFeeling(contraction, payload.feeling));
+      Object.assign(contraction, withPain(contraction, payload.pain));
+      enqueueSave(state, live.id, contraction);
+    },
+
+    //~ The intensity drawn on the trace, asked with the pain
+    curveChosen: (state, { payload }: PayloadAction<CurveLevel>) => {
+      const live = state.live;
+      const last = live?.contractions.at(-1);
+      if (!live || !last) return;
+      last.curve = payload;
+      enqueueSave(state, live.id, last);
+    },
+
+    //~ ...or changed afterwards, from the journal
+    curveChanged: (state, { payload }: PayloadAction<{ contractionId: string; curve: CurveLevel }>) => {
+      const live = state.live;
+      const contraction = live?.contractions.find((candidate) => candidate.id === payload.contractionId);
+      if (!live || !contraction) return;
+      contraction.curve = payload.curve;
       enqueueSave(state, live.id, contraction);
     },
 
@@ -269,8 +294,10 @@ export const {
   monitoringStarted,
   monitoringStopped,
   contractionTapped,
-  feelingChosen,
-  feelingChanged,
+  painChosen,
+  painChanged,
+  curveChosen,
+  curveChanged,
   movementTapped,
   lastTapUndone,
   liveForgotten,

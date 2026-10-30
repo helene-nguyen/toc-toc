@@ -7,14 +7,17 @@ import { Link } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import {
   contractionTapped,
-  feelingChanged,
-  feelingChosen,
+  curveChanged,
+  curveChosen,
+  painChanged,
+  painChosen,
   lastTapUndone,
   monitoringStarted,
   monitoringStopped,
   movementTapped
 } from '../monitoringSlice';
-import { feelingOf, type Feeling } from '../feeling';
+import { curveOf, painOf, type Pain } from '../feeling';
+import type { CurveLevel } from '../monitoringTypes';
 import { toTimeline } from '../domain/timeline';
 import type { ChartMode } from '../chart/drawChart';
 import { TocoChart } from '../components/TocoChart';
@@ -76,10 +79,9 @@ export const MonitoringPage = () => {
     setMovementNotedAt(Date.now());
     vibrate(15);
   }, [dispatch]);
-  const chooseFeeling = (feeling: Feeling) => {
-    dispatch(feelingChosen(feeling));
-    setAskIntensity(false);
-  };
+  // the chips stay open: pain and intensity are two choices
+  const choosePain = (pain: Pain) => dispatch(painChosen(pain));
+  const chooseCurve = (curve: CurveLevel) => dispatch(curveChosen(curve));
   const stop = () => {
     dispatch(monitoringStopped());
     setConfirmStop(false);
@@ -193,7 +195,8 @@ export const MonitoringPage = () => {
                 dispatch(lastTapUndone());
                 setAskIntensity(false);
               }}
-              onFeelingChange={(contractionId, feeling) => dispatch(feelingChanged({ contractionId, feeling }))}
+              onPainChange={(contractionId, pain) => dispatch(painChanged({ contractionId, pain }))}
+              onCurveChange={(contractionId, curve) => dispatch(curveChanged({ contractionId, curve }))}
             />
           </div>
         </>
@@ -219,11 +222,14 @@ export const MonitoringPage = () => {
         movementCount={live?.movements.length ?? 0}
         movementJustNoted={now - movementNotedAt < 1400}
         askIntensity={askIntensity}
-        lastFeeling={lastContraction ? feelingOf(lastContraction) : null}
+        lastPain={lastContraction ? painOf(lastContraction) : null}
+        lastCurve={lastContraction ? curveOf(lastContraction) : null}
         onStart={start}
         onContraction={tapContraction}
         onMovement={tapMovement}
-        onFeeling={chooseFeeling}
+        onPain={choosePain}
+        onCurve={chooseCurve}
+        onAskDone={() => setAskIntensity(false)}
       />
     </div>
   );

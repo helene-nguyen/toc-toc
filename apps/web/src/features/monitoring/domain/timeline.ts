@@ -1,15 +1,17 @@
 //~ The screen reads a monitoring as a timeline: every time in seconds since
 // its start. The trace, the stats and the print all work on this shape —
 // plain numbers, no dates, no API types.
-import type { Intensity, Monitoring } from '../monitoringTypes';
+import type { CurveLevel, Intensity, Monitoring } from '../monitoringTypes';
 
 export interface TimelineContraction {
   start: number;
   // null while the contraction goes on
   end: number | null;
   intensity: Intensity;
-  // painless (Braxton-Hicks): drawn low, left out of the labour figures
+  // painless (Braxton-Hicks): left out of the labour figures
   braxtonHicks: boolean;
+  // how high the trace goes
+  curve: CurveLevel;
 }
 
 export interface Timeline {
@@ -29,11 +31,12 @@ export const toTimeline = (monitoring: Monitoring, now: Date): Timeline => {
     now: monitoring.stoppedAt ? seconds(monitoring.stoppedAt) : Math.max(0, (now.getTime() - origin) / 1000),
     running: monitoring.stoppedAt === null,
     contractions: monitoring.contractions
-      .map(({ startedAt, endedAt, intensity, braxtonHicks }) => ({
+      .map(({ startedAt, endedAt, intensity, braxtonHicks, curve }) => ({
         start: seconds(startedAt),
         end: endedAt === null ? null : seconds(endedAt),
         intensity,
-        braxtonHicks: braxtonHicks ?? false
+        braxtonHicks: braxtonHicks ?? false,
+        curve: curve ?? 'auto'
       }))
       .sort((a, b) => a.start - b.start),
     movements: monitoring.movements.map(({ at }) => seconds(at)).sort((a, b) => a - b)

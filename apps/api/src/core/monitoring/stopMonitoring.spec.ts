@@ -23,7 +23,7 @@ describe('StopMonitoring', () => {
       id: ids.contraction,
       startedAt: at(54),
       endedAt: null,
-      intensity: 2, braxtonHicks: false
+      intensity: 2, braxtonHicks: false, curve: 'auto' as const
     });
 
     const result = await stopMonitoring.handle(ids.monitoring, 1, at(55));

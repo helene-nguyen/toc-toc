@@ -3,8 +3,10 @@ import {
   accountChanged,
   contractionTapped,
   initialMonitoringState,
-  feelingChosen,
-  feelingChanged,
+  curveChanged,
+  curveChosen,
+  painChanged,
+  painChosen,
   lastTapUndone,
   liveDiscarded,
   liveForgotten,
@@ -44,7 +46,7 @@ describe('monitoringSlice', () => {
     );
 
     expect(state.live?.contractions).toEqual([
-      { id: 'c1', startedAt: at(5), endedAt: at(6), intensity: 2, braxtonHicks: false }
+      { id: 'c1', startedAt: at(5), endedAt: at(6), intensity: 2, braxtonHicks: false, curve: 'auto' }
     ]);
     expect(kinds(state)).toEqual(['start', 'saveContraction']);
   });
@@ -54,7 +56,7 @@ describe('monitoringSlice', () => {
       monitoringStarted({ id: 'm1', at: at(0) }),
       contractionTapped({ id: 'c1', at: at(5) }),
       contractionTapped({ id: 'x', at: at(6) }),
-      feelingChosen(3)
+      painChosen(3)
     );
 
     expect(state.live?.contractions[0].intensity).toBe(3);
@@ -69,7 +71,7 @@ describe('monitoringSlice', () => {
       contractionTapped({ id: 'c2', at: at(10) }),
       contractionTapped({ id: 'x', at: at(11) }),
       monitoringStopped({ id: 'x', at: at(20) }),
-      feelingChanged({ contractionId: 'c1', feeling: 1 })
+      painChanged({ contractionId: 'c1', pain: 1 })
     );
 
     expect(state.live?.contractions.map((contraction) => contraction.intensity)).toEqual([1, 2]);
@@ -81,14 +83,29 @@ describe('monitoringSlice', () => {
       monitoringStarted({ id: 'm1', at: at(0) }),
       contractionTapped({ id: 'c1', at: at(5) }),
       contractionTapped({ id: 'x', at: at(6) }),
-      feelingChosen(3),
-      feelingChosen('painless')
+      painChosen(3),
+      painChosen('none')
     );
-    const back = monitoringReducer(marked, feelingChanged({ contractionId: 'c1', feeling: 2 }));
+    const back = monitoringReducer(marked, painChanged({ contractionId: 'c1', pain: 2 }));
 
     expect(marked.live?.contractions[0]).toMatchObject({ intensity: 3, braxtonHicks: true });
     expect(marked.outbox.at(-1)).toMatchObject({ contraction: { id: 'c1', braxtonHicks: true } });
     expect(back.live?.contractions[0]).toMatchObject({ intensity: 2, braxtonHicks: false });
+  });
+
+  it('sets the intensity drawn on the trace apart from the pain, now or afterwards', () => {
+    const state = play(
+      monitoringStarted({ id: 'm1', at: at(0) }),
+      contractionTapped({ id: 'c1', at: at(5) }),
+      contractionTapped({ id: 'x', at: at(6) }),
+      painChosen(3),
+      curveChosen('low')
+    );
+    const changed = monitoringReducer(state, curveChanged({ contractionId: 'c1', curve: 'high' }));
+
+    expect(state.live?.contractions[0]).toMatchObject({ intensity: 3, braxtonHicks: false, curve: 'low' });
+    expect(changed.live?.contractions[0].curve).toBe('high');
+    expect(changed.outbox.at(-1)).toMatchObject({ kind: 'saveContraction', contraction: { id: 'c1', curve: 'high' } });
   });
 
   it('records movements', () => {
@@ -191,7 +208,9 @@ describe('monitoringSlice', () => {
       id: 'm1',
       startedAt: at(0),
       stoppedAt: null,
-      contractions: [{ id: 'c1', startedAt: at(5), endedAt: at(6), intensity: 2 as const, braxtonHicks: false }],
+      contractions: [
+        { id: 'c1', startedAt: at(5), endedAt: at(6), intensity: 2 as const, braxtonHicks: false, curve: 'auto' as const }
+      ],
       movements: []
     };
 

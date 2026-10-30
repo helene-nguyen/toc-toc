@@ -9,14 +9,18 @@
 // - after "end", it comes down at the pace it went up: the same path in
 //   reverse, from the level it had reached — a 20 s contraction takes 20 s
 //   to settle, one that reached 100 takes the full 1 min 30
-// - a painless (Braxton-Hicks) contraction has the same timing, scaled down
-//   to peak at BRAXTON_HICKS_TOP
-// The felt intensity is recorded but plays no part: only the taps shape the
-// curve. Nothing is redrawn afterwards — the live trace and the saved one match.
+// - an intensity chosen for the trace caps it: the curve climbs the same
+//   way and stops at CURVE_CAP (low 30, medium 60, high 80); after "end" it
+//   comes down at once, as fast as it climbed to that cap; 'auto' leaves it
+//   to the duration
+// The felt pain is recorded but plays no part. Nothing is redrawn afterwards
+// — the live trace and the saved one match.
+import type { CurveLevel } from '../monitoringTypes';
 import type { Timeline } from './timeline';
 
 export const REST = 10;
-export const BRAXTON_HICKS_TOP = 30;
+// mmHg the trace stops at, per chosen intensity
+export const CURVE_CAP: Record<Exclude<CurveLevel, 'auto'>, number> = { low: 30, medium: 60, high: 80 };
 // [seconds after "start", mmHg]
 export const LANDMARKS: [number, number][] = [
   [0, REST],
@@ -65,8 +69,24 @@ export const contractionLevel = (elapsed: number): number => {
 // seconds from rest to the top; past it the curve holds
 export const FULL_CLIMB = LANDMARKS[LANDMARKS.length - 1][0];
 
-// the full climb (rest → 100) brought down to rest → BRAXTON_HICKS_TOP
-const BRAXTON_HICKS_SCALE = (BRAXTON_HICKS_TOP - REST) / (LANDMARKS[LANDMARKS.length - 1][1] - REST);
+// seconds the climb takes to reach `mmHg` — the climb only goes up, so halve the interval
+const timeToReach = (mmHg: number): number => {
+  let [low, high] = [0, FULL_CLIMB];
+  for (let step = 0; step < 40; step += 1) {
+    const middle = (low + high) / 2;
+    if (contractionLevel(middle) + REST < mmHg) low = middle;
+    else high = middle;
+  }
+  return high;
+};
+
+// how long each kind of curve climbs at most — and so how long it takes to come down
+export const CLIMB_TIME: Record<CurveLevel, number> = {
+  auto: FULL_CLIMB,
+  low: timeToReach(CURVE_CAP.low),
+  medium: timeToReach(CURVE_CAP.medium),
+  high: timeToReach(CURVE_CAP.high)
+};
 
 export const baseline = (t: number): number =>
   9 + 1.3 * Math.sin(t * 0.9) + 0.8 * Math.sin(t * 2.3 + 1) + 1.6 * Math.sin(t * 0.021);
@@ -79,14 +99,15 @@ export const tocoValue = (timeline: Timeline, t: number): number => {
   for (const contraction of timeline.contractions) {
     const elapsed = t - contraction.start;
     const duration = contraction.end === null ? Infinity : contraction.end - contraction.start;
-    // the way down replays the way up, so it lasts as long as the climb did
-    const climbed = Math.min(duration, FULL_CLIMB);
+    // the way down replays the way up — up to the cap, if one was chosen —
+    // so it lasts as long as the climb did
+    const climbed = Math.min(duration, CLIMB_TIME[contraction.curve]);
     if (elapsed < 0 || elapsed > duration + climbed) continue;
 
     const level =
       elapsed <= duration ? contractionLevel(elapsed) : contractionLevel(climbed - (elapsed - duration));
-    const scale = contraction.braxtonHicks ? BRAXTON_HICKS_SCALE : 1;
-    value += level * scale * (1 + 0.02 * Math.sin(t * 1.7));
+    const cap = contraction.curve === 'auto' ? Infinity : CURVE_CAP[contraction.curve] - REST;
+    value += Math.min(level, cap) * (1 + 0.02 * Math.sin(t * 1.7));
   }
 
   return Math.max(0, Math.min(100, value));

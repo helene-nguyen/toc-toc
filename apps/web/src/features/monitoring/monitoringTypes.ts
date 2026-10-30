@@ -1,7 +1,10 @@
 //~ What the API answers — dates travel as ISO strings.
 
-// felt intensity: 1 light, 2 medium, 3 strong
+// felt pain: 1 light, 2 medium, 3 strong (no pain at all: braxtonHicks)
 export type Intensity = 1 | 2 | 3;
+
+// how high the trace goes: 'auto' follows the duration, the others cap it
+export type CurveLevel = 'auto' | 'low' | 'medium' | 'high';
 
 export interface Contraction {
   id: string;
@@ -11,6 +14,8 @@ export interface Contraction {
   intensity: Intensity;
   // painless (Braxton-Hicks); missing on contractions recorded before it existed
   braxtonHicks?: boolean;
+  // missing on contractions recorded before it existed: 'auto'
+  curve?: CurveLevel;
 }
 
 export interface Movement {

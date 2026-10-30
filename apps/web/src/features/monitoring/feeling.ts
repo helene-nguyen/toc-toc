@@ -1,31 +1,49 @@
-//~ How a contraction felt, as the person picks it: an intensity, or no pain
-// at all — a Braxton-Hicks contraction. Stored as two fields (intensity,
-// braxtonHicks) but chosen in one place, the chips and the journal.
-import type { Intensity } from './monitoringTypes';
+//~ How a contraction is described, in two independent choices:
+// - the pain felt: none (a Braxton-Hicks contraction), light, medium or
+//   strong — stored as braxtonHicks + intensity; it never changes the trace
+// - the intensity drawn on the trace: auto (from the duration, the default)
+//   or a level that caps the curve — stored as curve
+import type { CurveLevel, Intensity } from './monitoringTypes';
 
-export type Feeling = Intensity | 'painless';
+export type Pain = Intensity | 'none';
 
-export const FEELINGS: { value: Feeling; label: string; short: string }[] = [
-  { value: 1, label: 'Légère', short: 'Légère' },
+// short: for the chips, under a "Douleur" heading
+export const PAINS: { value: Pain; label: string; short: string }[] = [
+  { value: 'none', label: 'Sans douleur', short: 'Aucune' },
+  { value: 1, label: 'Faible', short: 'Faible' },
   { value: 2, label: 'Moyenne', short: 'Moyenne' },
-  { value: 3, label: 'Forte', short: 'Forte' },
-  { value: 'painless', label: 'Sans douleur (Braxton-Hicks)', short: 'Sans douleur (BH)' }
+  { value: 3, label: 'Forte', short: 'Forte' }
 ];
 
-const LABELS = new Map(FEELINGS.map(({ value, short }) => [value, short]));
+const PAIN_LABELS = new Map(PAINS.map(({ value, label }) => [value, label]));
 
-// braxtonHicks is missing on contractions recorded before it existed
-export const feelingOf = ({ intensity, braxtonHicks }: { intensity: Intensity; braxtonHicks?: boolean }): Feeling =>
-  braxtonHicks ? 'painless' : intensity;
+interface Painful {
+  intensity: Intensity;
+  // missing on contractions recorded before it existed
+  braxtonHicks?: boolean;
+}
 
-export const feelingLabel = (contraction: { intensity: Intensity; braxtonHicks?: boolean }): string =>
-  LABELS.get(feelingOf(contraction)) ?? '';
+export const painOf = ({ intensity, braxtonHicks }: Painful): Pain => (braxtonHicks ? 'none' : intensity);
 
-// a painless contraction keeps its last intensity, in case it is changed back
-export const withFeeling = <C extends { intensity: Intensity; braxtonHicks?: boolean }>(contraction: C, feeling: Feeling): C =>
-  feeling === 'painless'
-    ? { ...contraction, braxtonHicks: true }
-    : { ...contraction, intensity: feeling, braxtonHicks: false };
+export const painLabel = (contraction: Painful): string => PAIN_LABELS.get(painOf(contraction)) ?? '';
+
+// "no pain" keeps the last intensity, in case it is changed back
+export const withPain = <C extends Painful>(contraction: C, pain: Pain): C =>
+  pain === 'none' ? { ...contraction, braxtonHicks: true } : { ...contraction, intensity: pain, braxtonHicks: false };
 
 // <select> values are strings
-export const parseFeeling = (value: string): Feeling => (value === 'painless' ? 'painless' : (Number(value) as Intensity));
+export const parsePain = (value: string): Pain => (value === 'none' ? 'none' : (Number(value) as Intensity));
+
+export const CURVES: { value: CurveLevel; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'low', label: 'Faible' },
+  { value: 'medium', label: 'Moyenne' },
+  { value: 'high', label: 'Forte' }
+];
+
+const CURVE_LABELS = new Map(CURVES.map(({ value, label }) => [value, label]));
+
+// missing on contractions recorded before it existed: drawn the auto way
+export const curveOf = ({ curve }: { curve?: CurveLevel }): CurveLevel => curve ?? 'auto';
+
+export const curveLabel = (contraction: { curve?: CurveLevel }): string => CURVE_LABELS.get(curveOf(contraction)) ?? '';

@@ -24,13 +24,13 @@ describe('PostgresMonitoringRepository', () => {
       id: ids.contraction2,
       startedAt: at(20),
       endedAt: null,
-      intensity: 3, braxtonHicks: false
+      intensity: 3, braxtonHicks: false, curve: 'auto' as const
     });
     await monitorings.saveContraction(ids.monitoring, {
       id: ids.contraction,
       startedAt: at(10),
       endedAt: at(11),
-      intensity: 1, braxtonHicks: false
+      intensity: 1, braxtonHicks: false, curve: 'auto' as const
     });
     await monitorings.saveMovement(ids.monitoring, { id: ids.movement, at: at(12) });
 
@@ -39,8 +39,8 @@ describe('PostgresMonitoringRepository', () => {
       startedAt: at(0),
       stoppedAt: null,
       contractions: [
-        { id: ids.contraction, startedAt: at(10), endedAt: at(11), intensity: 1, braxtonHicks: false },
-        { id: ids.contraction2, startedAt: at(20), endedAt: null, intensity: 3, braxtonHicks: false }
+        { id: ids.contraction, startedAt: at(10), endedAt: at(11), intensity: 1, braxtonHicks: false, curve: 'auto' as const },
+        { id: ids.contraction2, startedAt: at(20), endedAt: null, intensity: 3, braxtonHicks: false, curve: 'auto' as const }
       ],
       movements: [{ id: ids.movement, at: at(12) }]
     });
@@ -48,11 +48,11 @@ describe('PostgresMonitoringRepository', () => {
 
   it('keeps the Braxton-Hicks mark, and changes it on the same id', async () => {
     await monitorings.insert(userId, { id: ids.monitoring, startedAt: at(0) });
-    const contraction = { id: ids.contraction, startedAt: at(10), endedAt: at(11), intensity: 1 as const, braxtonHicks: true };
+    const contraction = { id: ids.contraction, startedAt: at(10), endedAt: at(11), intensity: 1 as const, braxtonHicks: true, curve: 'auto' as const };
 
     await monitorings.saveContraction(ids.monitoring, contraction);
     const marked = (await monitorings.findById(ids.monitoring, userId))?.contractions[0].braxtonHicks;
-    await monitorings.saveContraction(ids.monitoring, { ...contraction, braxtonHicks: false });
+    await monitorings.saveContraction(ids.monitoring, { ...contraction, braxtonHicks: false, curve: 'auto' as const });
 
     expect(marked).toBe(true);
     expect((await monitorings.findById(ids.monitoring, userId))?.contractions[0].braxtonHicks).toBe(false);
@@ -60,7 +60,7 @@ describe('PostgresMonitoringRepository', () => {
 
   it('upserts a tap on its id — a retried sync lands once', async () => {
     await monitorings.insert(userId, { id: ids.monitoring, startedAt: at(0) });
-    const contraction = { id: ids.contraction, startedAt: at(10), endedAt: null, intensity: 2 as const, braxtonHicks: false };
+    const contraction = { id: ids.contraction, startedAt: at(10), endedAt: null, intensity: 2 as const, braxtonHicks: false, curve: 'auto' as const };
 
     await monitorings.saveContraction(ids.monitoring, contraction);
     await monitorings.saveContraction(ids.monitoring, { ...contraction, endedAt: at(11) });
@@ -98,7 +98,7 @@ describe('PostgresMonitoringRepository', () => {
       id: ids.contraction,
       startedAt: at(2),
       endedAt: at(3),
-      intensity: 2, braxtonHicks: false
+      intensity: 2, braxtonHicks: false, curve: 'auto' as const
     });
 
     expect(await monitorings.removeMovement(ids.monitoring, ids.movement)).toBe(true);

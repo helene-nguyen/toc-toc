@@ -9,6 +9,7 @@ const contraction = (overrides: Partial<Contraction> = {}): Contraction => ({
   endedAt: at(11),
   intensity: 2,
   braxtonHicks: false,
+  curve: 'auto',
   ...overrides
 });
 

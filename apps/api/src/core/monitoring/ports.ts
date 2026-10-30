@@ -6,8 +6,11 @@
 // Ids are UUIDs made by the phone: a tap is saved on the device first and
 // synced later, so the same request may arrive twice — it must land once.
 
-// felt intensity: 1 light, 2 medium, 3 strong
+// felt pain: 1 light, 2 medium, 3 strong (no pain at all: braxtonHicks)
 export type Intensity = 1 | 2 | 3;
+
+// how high the trace goes: 'auto' follows the duration, the others cap it
+export type CurveLevel = 'auto' | 'low' | 'medium' | 'high';
 
 export interface Contraction {
   id: string;
@@ -15,8 +18,9 @@ export interface Contraction {
   // null while the contraction goes on
   endedAt: Date | null;
   intensity: Intensity;
-  // a painless one (Braxton-Hicks): drawn low, left out of the labour figures
+  // a painless one (Braxton-Hicks): left out of the labour figures
   braxtonHicks: boolean;
+  curve: CurveLevel;
 }
 
 export interface Movement {
